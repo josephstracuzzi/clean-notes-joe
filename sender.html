@@ -64,7 +64,8 @@
         .dot.green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
         .dot.amber { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
         .dot.red { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
-        .footer { font-size: 10px; color: #666; text-align: center; font-family: var(--font-mono); letter-spacing: 0.5px; margin-top: auto; padding-top: 4px; line-height: 1.6; }
+        .footer { margin-top: auto; padding: 12px 10px; text-align: center; font-size: 20px; font-weight: 900; letter-spacing: 2px; color: #fbbf24;
+            border: 2px solid #78350f; border-radius: 4px; background: rgba(245, 158, 11, 0.08); flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -117,10 +118,7 @@
         </div>
     </div>
 
-    <div class="footer">
-        ON EACH NOTES PC: CLEAN NOTES JOE → NETWORK → PAIRED WITH → <span id="footer-name"></span><br>
-        LEAVE THIS WINDOW OPEN DURING THE SHOW
-    </div>
+    <div class="footer" title="MINIMIZE IT INSTEAD: IT KEEPS SENDING FROM THE SYSTEM TRAY">DO NOT CLOSE THIS WINDOW</div>
 
     <script>
         const api = window.senderAPI;
@@ -159,7 +157,6 @@
             if (document.activeElement !== $('name')) $('name').value = c.name;
             if (document.activeElement !== $('code')) $('code').value = c.code;
             $('ip').textContent = (n.addresses || []).join(', ') || 'NO NETWORK';
-            $('footer-name').textContent = c.name + ' · ' + ROLE[c.role];
 
             const clients = $('clients');
             const count = (n.clients || []).length;

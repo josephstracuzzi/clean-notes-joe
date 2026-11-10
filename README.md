@@ -48,7 +48,8 @@ PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no
 **On the PowerPoint PC:** open **Clean Notes Joe Sender** next to PowerPoint. The first time, set **ROLE** (MAIN or
 BACKUP) and **THIS PC'S NAME** (e.g. STAGE-A); it remembers them. When Windows asks to allow it on the network,
 allow it on **Private** networks. The window shows the slide and notes it's sending, this PC's IP address, and
-which notes PCs are connected (**SENDING TO 2**). Leave it open during the show.
+which notes PCs are connected (**SENDING TO 2**). Leave it running during the show: minimizing hides it to the system
+tray, where it keeps sending (click the coffee-cup icon to bring it back). Closing the window asks before it stops sending.
 
 **On the notes PC:** click **NETWORK**, then pick the PowerPoint PC under **PAIRED WITH** (listed with
 its role and IP address). If the list stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and

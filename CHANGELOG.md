@@ -19,6 +19,10 @@ Versions follow `MAJOR.MINOR.PATCH`:
   text colour with a line under it, slide number on the left, timer in the centre and clock on the right. It is 5% of
   the screen height by default, adjustable with **HEADER SIZE** (3 to 12%) in the SCREEN panel. The notes always start
   below it, and it disappears when all three are off.
+- **Clean Notes Joe Sender**: minimizing hides it to the **system tray** (it keeps sending; click the coffee-cup icon to
+  bring it back, hover for the status, right-click for Show / Quit). Closing the window asks first: **Minimize to tray**,
+  **Quit sender** or **Cancel**. The bottom of the window now just says **DO NOT CLOSE THIS WINDOW**. Opening it again
+  while it's running brings the running one back instead of starting a second copy.
 - The console's smallest window width is now 1100 px (as in Playback Joe); below 1250 px the logo and header buttons shrink.
 
 ## [0.4.0] - 2026-11-10
