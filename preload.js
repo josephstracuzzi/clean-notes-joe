@@ -14,6 +14,7 @@ function listen(channel) {
 
 contextBridge.exposeInMainWorld('notesAPI', {
     getInitial: () => ipcRenderer.invoke('get-initial'),
+    setUiScale: (level) => ipcRenderer.send('set-ui-scale', level),
 
     // Console commands
     openDeck: () => ipcRenderer.invoke('open-deck'),

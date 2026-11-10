@@ -115,6 +115,7 @@ function saveSettingsNow() {
         const tmpPath = settingsPath + '.tmp';
         fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
         const data = {
+            uiScale: uiScaleLevel,
             display: settings,
             lastFile: deck.file,
             source: state.source,
@@ -131,6 +132,34 @@ function saveSettingsNow() {
 const savedFile = loadSettingsFile();
 let settings = { ...DEFAULT_SETTINGS, ...cleanSettings(savedFile.display) };
 let outputDisplayId = Number.isFinite(savedFile.outputDisplayId) ? savedFile.outputDisplayId : null;
+
+// Operator interface size (SIZE button), as in Playback Joe. The output window is never scaled.
+const UI_SCALES = { 1: 0.85, 2: 1, 3: 1.15 };
+const isUiScale = (level) => [1, 2, 3].includes(level);
+let uiScaleLevel = isUiScale(savedFile.uiScale) ? savedFile.uiScale : 2;
+
+// The minimum window scales with the interface, so the page always has at least 1000x700 to lay out in
+function applyUiScale(level) {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const zoom = UI_SCALES[level];
+    mainWindow.webContents.setZoomFactor(zoom);
+    const bounds = mainWindow.getBounds();
+    const { workArea } = screen.getDisplayMatching(bounds);
+    const minWidth = Math.min(Math.round(1000 * zoom), workArea.width);
+    const minHeight = Math.min(Math.round(700 * zoom), workArea.height);
+    mainWindow.setMinimumSize(minWidth, minHeight);
+    if (mainWindow.isMaximized() || mainWindow.isFullScreen()) return;
+    if (bounds.width < minWidth || bounds.height < minHeight) {
+        const width = Math.max(bounds.width, minWidth);
+        const height = Math.max(bounds.height, minHeight);
+        mainWindow.setBounds({
+            x: Math.max(workArea.x, Math.min(bounds.x, workArea.x + workArea.width - width)),
+            y: Math.max(workArea.y, Math.min(bounds.y, workArea.y + workArea.height - height)),
+            width,
+            height
+        });
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Show state
@@ -556,13 +585,16 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             sandbox: true,
+            zoomFactor: UI_SCALES[uiScaleLevel],
             preload: path.join(__dirname, 'preload.js')
         }
     });
     const workArea = primary.workArea;
     mainWindow.setBounds({ x: workArea.x, y: workArea.y, width: Math.min(1280, workArea.width), height: Math.min(900, workArea.height) });
-    mainWindow.setMinimumSize(Math.min(1000, workArea.width), Math.min(700, workArea.height));
+    applyUiScale(uiScaleLevel);
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    // Chromium can bring back an older zoom on load, so the saved size is set again here
+    mainWindow.webContents.on('did-finish-load', () => mainWindow.webContents.setZoomFactor(UI_SCALES[uiScaleLevel]));
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -603,7 +635,7 @@ function fromOutput(event) {
 
 ipcMain.handle('get-initial', (event) => {
     if (!fromOperator(event) && !fromOutput(event)) return null;
-    return { version: app.getVersion(), state: publicState(), settings, deck: fromOperator(event) ? deck : null, defaults: DEFAULT_SETTINGS };
+    return { version: app.getVersion(), uiScale: uiScaleLevel, state: publicState(), settings, deck: fromOperator(event) ? deck : null, defaults: DEFAULT_SETTINGS };
 });
 
 ipcMain.handle('open-deck', async (event) => {
@@ -616,6 +648,13 @@ ipcMain.handle('open-deck', async (event) => {
     if (result.canceled || !result.filePaths.length) return false;
     if (state.source === 'live') setSource('file');
     return loadDeck(result.filePaths[0]);
+});
+
+ipcMain.on('set-ui-scale', (event, level) => {
+    if (!fromOperator(event) || !isUiScale(level)) return;
+    uiScaleLevel = level;
+    applyUiScale(level);
+    saveSettingsSoon();
 });
 
 ipcMain.on('reload-deck', (event) => {

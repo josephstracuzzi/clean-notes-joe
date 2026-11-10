@@ -233,6 +233,7 @@
             <div></div>
             <div class="header-right">
                 <div class="header-actions">
+                    <button class="btn-top" id="btn-ui-scale" onclick="openUiScaleMenu(this)" title="INTERFACE SIZE (OPERATOR WINDOW ONLY)">SIZE</button>
                     <button class="btn-top" id="btn-display" onclick="openDisplayMenu(this)" title="WHICH SCREEN SHOWS THE NOTES">DISPLAY</button>
                     <button class="btn-top" id="btn-console" onclick="showModal('console-modal'); setConsoleError(false)">CONSOLE</button>
                     <button class="btn-top" id="btn-output" onclick="api.toggleOutput()">OUTPUT</button>
@@ -342,6 +343,14 @@
             pickMenu.style.top = (r.bottom + h + 4 < window.innerHeight ? r.bottom + 4 : Math.max(4, r.top - h - 4)) + 'px';
         }
         document.addEventListener('mousedown', e => { if (!pickMenu.contains(e.target)) pickMenu.style.display = 'none'; });
+
+        let uiScale = 2;
+        function openUiScaleMenu(anchor) {
+            openPickMenu(anchor, [[1, 'SMALL'], [2, 'DEFAULT'], [3, 'LARGE']].map(([value, label]) => ({ label, value, current: value === uiScale })), level => {
+                uiScale = level;
+                api.setUiScale(level);
+            });
+        }
 
         function openDisplayMenu(anchor) {
             const items = [{ label: 'AUTO (SECOND SCREEN)', value: null, current: state.outputDisplayId === null }]
@@ -777,6 +786,7 @@
             for (const el of document.querySelectorAll('[data-app-version]')) el.textContent = 'V' + init.version;
             document.title = `CLEAN NOTES JOE ${init.version} - OPERATOR`;
             defaults = init.defaults;
+            uiScale = init.uiScale || 2;
             settings = init.settings;
             state = init.state;
             deck = init.deck || { slides: [] };
