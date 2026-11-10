@@ -70,6 +70,8 @@ const ppt = {
     name: '', file: null, index: 0, count: 0, title: '', notes: ''
 };
 let deck = { file: null, name: '', slides: [] };
+// Helper diagnostics, shown under the status while waiting: { helper, ps, powerpointProcess, restarts, lastError }
+let diag = null;
 let watchedFile = null;
 
 function loadDeck(file) {
@@ -138,7 +140,7 @@ function onPowerPoint(s) {
 // Test hook: CNJ_FAKE_POWERPOINT=<deck.pptx> pretends PowerPoint shows that deck; fakeGo(n) changes slide
 function createFollower() {
     const fakeFile = process.env.CNJ_FAKE_POWERPOINT;
-    if (!fakeFile) return new LiveFollower(onPowerPoint);
+    if (!fakeFile) return new LiveFollower(onPowerPoint, d => { diag = d; broadcast(); });
     let index = 1;
     const emit = () => {
         const slides = readPresentation(fakeFile).slides;
@@ -148,6 +150,7 @@ function createFollower() {
     global.fakeGo = (n) => { index = n; emit(); };
     global.fakeQuit = () => onPowerPoint({ state: 'not-running' });
     global.fakeState = (st) => onPowerPoint(st);
+    global.fakeDiag = (d) => { diag = d; broadcast(); };
     return { start: () => setTimeout(emit, 300), stop: () => {} };
 }
 
@@ -178,6 +181,7 @@ function publicState() {
         version: VERSION,
         config: { name: config.name, role: config.role, code: config.code },
         ppt: { ...ppt, deckName: deck.name, slides: deck.slides.length },
+        diag,
         net: sender.snapshot()
     };
 }

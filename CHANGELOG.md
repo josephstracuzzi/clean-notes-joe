@@ -9,7 +9,7 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
-## [Unreleased]
+## [0.5.1] - 2026-11-10
 
 ### Fixed
 - **Finding PowerPoint (Sender and LOCAL)**: when PowerPoint is open but not yet visible to other programs (Office only
@@ -19,6 +19,10 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - Clearer reasons when PowerPoint can't be read: **CAN'T REACH POWERPOINT** when it's open but one of the two apps runs as
   administrator, and a message when PowerShell is restricted on the PC (Constrained Language mode). The Sender explains
   what to do in its notes area.
+
+- **Diagnostics in the Sender**: while it's waiting, a line under the message shows whether its PowerPoint helper (Windows
+  PowerShell) is running and which version, whether Windows reports PowerPoint as running, and the last helper error.
+  A helper that doesn't start, stops or doesn't answer within 20 seconds is now reported instead of waiting silently.
 
 ### Changed
 - The Sender's window fits its content exactly (about 550 × 600), keeping the same look; it can be made bigger but not

@@ -22,6 +22,7 @@ if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
     exit
 }
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+[Console]::Out.WriteLine((@{ state = 'hello'; ps = $PSVersionTable.PSVersion.ToString() } | ConvertTo-Json -Compress)); [Console]::Out.Flush()
 $last = ''
 $unreachable = $false
 $nextFallback = [DateTime]::MinValue
@@ -56,7 +57,12 @@ while ($true) {
     $out = $null
     $app = Get-PowerPoint
     if (-not $app) {
-        if ($unreachable) { $out = '{"state":"unreachable"}' } else { $out = '{"state":"not-running"}' }
+        if ($unreachable) { $out = '{"state":"unreachable"}' }
+        else {
+            # Diagnostics: is PowerPoint's process running at all?
+            $found = [bool](Get-Process -Name POWERPNT -ErrorAction SilentlyContinue)
+            $out = '{"state":"not-running","proc":' + $found.ToString().ToLower() + '}'
+        }
     } else {
         try {
             $pres = $null; $idx = 0; $mode = ''
@@ -129,8 +135,11 @@ function cleanNotes(s) {
 }
 
 class LiveFollower {
-    constructor(onUpdate) {
+    // onDiag (optional) gets { helper, ps, powerpointProcess, restarts, lastError } for the Sender's diagnostics line
+    constructor(onUpdate, onDiag) {
         this.onUpdate = onUpdate;
+        this.onDiag = onDiag || (() => {});
+        this.diag = { helper: 'starting', ps: '', powerpointProcess: null, restarts: 0, lastError: '' };
         this.proc = null;
         this.timer = null;
         this.running = false;
@@ -172,6 +181,14 @@ class LiveFollower {
         const exe = require('fs').existsSync(fixed) ? fixed : 'powershell.exe';
         const proc = spawn(exe, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded], { windowsHide: true });
         this.proc = proc;
+        this.setDiag({ helper: 'starting' });
+        // No hello within 20 s: PowerShell is blocked or hanging (antivirus, policy). Say so instead of waiting silently.
+        let helloSeen = false;
+        const helloTimer = setTimeout(() => {
+            if (helloSeen || this.proc !== proc) return;
+            this.setDiag({ helper: 'not responding', lastError: 'NO ANSWER FROM WINDOWS POWERSHELL AFTER 20 SECONDS' });
+            this.emit({ state: 'error', message: 'THE POWERPOINT HELPER (WINDOWS POWERSHELL) IS NOT RESPONDING. IT MAY BE BLOCKED BY ANTIVIRUS OR A COMPANY POLICY.' });
+        }, 20000);
         let buffer = '';
         proc.stdout.setEncoding('utf8');
         proc.stdout.on('data', chunk => {
@@ -183,6 +200,13 @@ class LiveFollower {
                 if (!line) continue;
                 try {
                     const s = JSON.parse(line);
+                    if (s.state === 'hello') {
+                        helloSeen = true;
+                        this.setDiag({ helper: 'running', ps: String(s.ps || '').slice(0, 30), lastError: '' });
+                        continue;
+                    }
+                    if (s.state === 'not-running' && typeof s.proc === 'boolean') this.setDiag({ powerpointProcess: s.proc });
+                    else if (s.state !== 'not-running') this.setDiag({ powerpointProcess: s.state === 'unreachable' || s.state === 'ok' || s.state === 'no-presentation' || s.state === 'busy' ? true : this.diag.powerpointProcess });
                     if (s.state === 'ok') {
                         this.emit({ state: 'ok', file: String(s.file || ''), name: String(s.name || ''), index: Number(s.index) || 1, count: Number(s.count) || 0, title: String(s.title || '').replace(/\s+/g, ' ').trim(), notes: cleanNotes(s.notes) });
                     } else {
@@ -193,15 +217,28 @@ class LiveFollower {
         });
         let stderr = '';
         proc.stderr.on('data', d => { stderr = (stderr + d).slice(-500); });
-        proc.on('error', err => this.emit({ state: 'error', message: 'COULD NOT START POWERSHELL: ' + err.message }));
-        proc.on('exit', () => {
+        proc.on('error', err => {
+            this.setDiag({ helper: 'failed', lastError: String(err.message).toUpperCase().slice(0, 200) });
+            this.emit({ state: 'error', message: 'COULD NOT START WINDOWS POWERSHELL: ' + String(err.message).toUpperCase() });
+        });
+        proc.on('exit', (code) => {
+            clearTimeout(helloTimer);
             if (this.proc !== proc) return;
             this.proc = null;
             if (!this.running) return;
-            if (stderr.trim()) this.emit({ state: 'error', message: 'POWERPOINT HELPER STOPPED: ' + stderr.trim().split('\n').pop() });
+            const why = stderr.trim() ? stderr.trim().split('\n').pop().trim().slice(0, 200) : (code === null ? 'STOPPED BY THE SYSTEM' : 'EXIT CODE ' + code);
+            this.setDiag({ helper: 'stopped', restarts: this.diag.restarts + 1, lastError: why.toUpperCase() });
+            this.emit({ state: 'error', message: 'THE POWERPOINT HELPER STOPPED (' + why.toUpperCase() + '). RESTARTING IT.' });
             // Restart after a pause (PowerShell killed, machine woke from sleep...)
             this.timer = setTimeout(() => { if (this.running) this.startWindows(); }, 2000);
         });
+    }
+
+    setDiag(changes) {
+        const next = { ...this.diag, ...changes };
+        if (JSON.stringify(next) === JSON.stringify(this.diag)) return;
+        this.diag = next;
+        this.onDiag(this.diag);
     }
 
     pollMac() {
