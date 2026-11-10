@@ -1,6 +1,6 @@
 {
   "name": "clean-notes-joe",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Speaker notes from PowerPoint, fullscreen on a second display, with auto-fit and auto-scroll. Includes Clean Notes Joe Sender for PowerPoint PCs (Windows)",
   "main": "main.js",
   "scripts": {
