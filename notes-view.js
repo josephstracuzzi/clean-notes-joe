@@ -220,7 +220,7 @@
                 borderBottom: `${line}px solid ${tint(hc, 0.3)}`
             });
             this.headerFontPx = Math.round(headerH * 0.5);
-            this.slideLabel.textContent = s.showSlideNumber && st.count ? `SLIDE ${st.index + 1} / ${st.count}` : '';
+            this.slideLabel.textContent = s.showSlideNumber && st.count ? `${st.index + 1} / ${st.count}` : '';
             Object.assign(this.more.style, { fontSize: Math.round(26 * u) + 'px', bottom: Math.round(H * 0.012) + 'px' });
             const barH = Math.max(2, Math.round(4 * u)) + 'px';
             Object.assign(this.track.style, { height: barH, background: s.color });

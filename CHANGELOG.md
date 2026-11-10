@@ -14,6 +14,7 @@ Versions follow `MAJOR.MINOR.PATCH`:
 ### Changed
 - **HEADER SIZE** goes up to 20% of the screen (was 12%). If the slide number, timer and clock don't fit side by side, the
   header text shrinks to fit instead of being cut off; the timer stays centred.
+- The header shows the slide number as **4 / 10** (the word SLIDE is gone, to save space).
 - **HEADER COLOUR** presets in the SCREEN panel: MATCH (the notes colour, as before), white, grey, yellow, green and red.
   The band and line under the header follow the chosen colour.
 - The header now uses the **notes font** (with fixed-width digits so the clock doesn't jiggle) instead of a monospace font.
