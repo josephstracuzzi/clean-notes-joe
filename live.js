@@ -8,7 +8,8 @@
 //            read from the saved file (save in PowerPoint to see note edits).
 // Each report is passed to onUpdate(state):
 //   { state: 'ok', file, name, index, count, title?, notes? }   index is 1-based
-//   { state: 'not-running' | 'unreachable' | 'no-presentation' | 'busy' | 'unsupported' | 'error', message? }
+//   { state: 'not-running' | 'unreachable' | 'no-presentation' | 'protected' | 'busy' | 'unsupported' | 'error', message? }
+//   protected = the deck is open in Protected View (Enable Editing not clicked yet)
 //   unreachable = PowerPoint is running but can't be reached (one of the two runs as administrator)
 // ============================================================================
 
@@ -90,6 +91,10 @@ while ($true) {
                 $title = ''
                 try { if ($slide.Shapes.HasTitle) { $title = $slide.Shapes.Title.TextFrame.TextRange.Text } } catch {}
                 $out = @{ state = 'ok'; mode = $mode; file = $pres.FullName; name = $pres.Name; index = $idx; count = $pres.Slides.Count; title = $title; notes = $notes } | ConvertTo-Json -Compress
+            } elseif ($app.ProtectedViewWindows.Count -gt 0) {
+                # Opened from the internet, email or a zip: read-only until Enable Editing is clicked, and not
+                # listed in Presentations until then
+                $out = '{"state":"protected"}'
             } else {
                 $out = '{"state":"no-presentation"}'
             }
@@ -206,7 +211,7 @@ class LiveFollower {
                         continue;
                     }
                     if (s.state === 'not-running' && typeof s.proc === 'boolean') this.setDiag({ powerpointProcess: s.proc });
-                    else if (s.state !== 'not-running') this.setDiag({ powerpointProcess: s.state === 'unreachable' || s.state === 'ok' || s.state === 'no-presentation' || s.state === 'busy' ? true : this.diag.powerpointProcess });
+                    else if (s.state !== 'not-running') this.setDiag({ powerpointProcess: ['unreachable', 'ok', 'no-presentation', 'busy', 'protected'].includes(s.state) ? true : this.diag.powerpointProcess });
                     if (s.state === 'ok') {
                         this.emit({ state: 'ok', file: String(s.file || ''), name: String(s.name || ''), index: Number(s.index) || 1, count: Number(s.count) || 0, title: String(s.title || '').replace(/\s+/g, ' ').trim(), notes: cleanNotes(s.notes) });
                     } else {

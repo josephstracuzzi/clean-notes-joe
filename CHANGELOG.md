@@ -9,6 +9,14 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.5.2] - 2026-11-10
+
+### Fixed
+- **Protected View**: a deck PowerPoint opens read-only (the yellow **Enable Editing** bar, for files from the internet,
+  email or a zip) couldn't be seen by the Sender or LOCAL, which kept waiting. They now say **PROTECTED VIEW: CLICK ENABLE
+  EDITING** (the Sender also explains how to unblock the file for good), paired notes PCs show it too, and following starts
+  as soon as Enable Editing is clicked.
+
 ## [0.5.1] - 2026-11-10
 
 ### Fixed

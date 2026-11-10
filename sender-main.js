@@ -100,6 +100,7 @@ const MESSAGES = {
     'not-running': 'WAITING FOR POWERPOINT',
     unreachable: "CAN'T REACH POWERPOINT",
     'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
+    protected: 'PROTECTED VIEW: CLICK ENABLE EDITING',
     busy: 'POWERPOINT IS BUSY',
     unsupported: 'NEEDS POWERPOINT ON WINDOWS',
     error: 'POWERPOINT ERROR'
@@ -109,6 +110,7 @@ const DETAILS = {
     'not-running': 'OPEN YOUR PRESENTATION IN POWERPOINT',
     unreachable: "POWERPOINT IS OPEN BUT THIS APP CAN'T REACH IT. THIS HAPPENS WHEN ONE OF THEM RUNS AS ADMINISTRATOR AND THE OTHER DOESN'T: START BOTH NORMALLY (OR BOTH AS ADMINISTRATOR).",
     'no-presentation': 'OPEN YOUR PRESENTATION IN POWERPOINT',
+    protected: 'POWERPOINT OPENED THE DECK IN PROTECTED VIEW (IT CAME FROM THE INTERNET, EMAIL OR A ZIP). CLICK ENABLE EDITING IN THE YELLOW BAR IN POWERPOINT. TO STOP IT HAPPENING WITH THIS FILE: RIGHT-CLICK THE FILE, PROPERTIES, TICK UNBLOCK, OK.',
     busy: 'CLOSE ANY DIALOG OPEN IN POWERPOINT',
     unsupported: 'CLEAN NOTES JOE SENDER NEEDS MICROSOFT POWERPOINT ON WINDOWS'
 };
@@ -170,7 +172,7 @@ function push() {
     sender.setDeck({ name: deck.name, slides: deck.slides, hash: deckHash(deck.slides) });
     sender.setLive({
         // The notes PCs know these states; anything else is reported as an error
-        status: ['ok', 'not-running', 'no-presentation', 'busy'].includes(ppt.status) ? ppt.status : (ppt.status === 'unreachable' ? 'not-running' : 'error'),
+        status: ['ok', 'not-running', 'no-presentation', 'protected', 'busy'].includes(ppt.status) ? ppt.status : (ppt.status === 'unreachable' ? 'not-running' : 'error'),
         name: ppt.name, index: ppt.index, count: ppt.count, title: ppt.title, notes: ppt.notes
     });
     broadcast();

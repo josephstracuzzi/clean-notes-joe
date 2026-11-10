@@ -30,7 +30,7 @@ const HEARTBEAT_MS = 1000;
 const TIMEOUT_MS = 2500;          // no message for this long = connection lost
 const HELLO_TIMEOUT_MS = 3000;
 const MAX_LINE = 16 * 1024 * 1024;
-const LIVE_STATUSES = ['ok', 'not-running', 'no-presentation', 'busy', 'error', 'off'];
+const LIVE_STATUSES = ['ok', 'not-running', 'no-presentation', 'protected', 'busy', 'error', 'off'];
 const ROLES = ['main', 'backup'];
 
 // ---------------------------------------------------------------------------

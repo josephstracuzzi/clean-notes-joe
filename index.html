@@ -667,7 +667,7 @@
             switch (rx.status) {
                 case 'connected':
                     if (rx.ppt === 'ok') return ['dot-green', 'CONNECTED · FOLLOWING POWERPOINT'];
-                    return ['dot-amber', 'CONNECTED · ' + ({ 'not-running': 'POWERPOINT IS CLOSED', 'no-presentation': 'NO PRESENTATION OPEN', off: 'NOT SENDING', error: 'POWERPOINT ERROR', busy: 'POWERPOINT BUSY' }[rx.ppt] || 'WAITING')];
+                    return ['dot-amber', 'CONNECTED · ' + ({ 'not-running': 'POWERPOINT IS CLOSED', 'no-presentation': 'NO PRESENTATION OPEN', protected: 'PROTECTED VIEW: CLICK ENABLE EDITING ON THE POWERPOINT PC', off: 'NOT SENDING', error: 'POWERPOINT ERROR', busy: 'POWERPOINT BUSY' }[rx.ppt] || 'WAITING')];
                 case 'lost': return ['dot-red', 'CONNECTION LOST · SHOWING LAST NOTES'];
                 case 'bad-code': return ['dot-red', 'REFUSED · SHOW CODES DON\'T MATCH'];
                 case 'wrong-sender': return ['dot-amber', 'A DIFFERENT PC HAS THAT ADDRESS · LOOKING'];
