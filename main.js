@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const { readPresentation } = require('./pptx');
 const { LiveFollower } = require('./live');
-const { NetSender, NetReceiver, deckHash, localAddresses, DEFAULT_PORT, DISCOVERY_PORT } = require('./network');
+const { NetReceiver, DISCOVERY_PORT } = require('./network');
 const os = require('os');
 const crypto = require('crypto');
 
@@ -218,7 +218,6 @@ function publicState() {
 }
 
 function broadcastState() {
-    pushToSender();
     const s = publicState();
     send(mainWindow, 'state', s);
     send(outputWindow, 'state', s);
@@ -231,7 +230,6 @@ function broadcastSettings() {
 
 function sendDeck() {
     send(mainWindow, 'deck', deck);
-    if (sender) sender.setDeck({ name: deck.name, slides: deck.slides, hash: deckHash(deck.slides) });
 }
 
 function notifyOperator(message) {
@@ -368,32 +366,24 @@ function setSource(source) {
         }
         state.index = Math.max(0, Math.min(state.index, deck.slides.length - 1));
     }
-    updateSender();
     refreshCurrent();
     saveSettingsSoon();
 }
 
 // ---------------------------------------------------------------------------
-// Network: send what this PC shows to paired notes PCs, or show what a paired PC sends
+// Network: show the notes a paired PowerPoint PC sends (it runs Clean Notes Joe Sender)
 // ---------------------------------------------------------------------------
 const NET_ROLES = ['main', 'backup'];
 const savedNet = (savedFile.network && typeof savedFile.network === 'object') ? savedFile.network : {};
 const netConfig = {
     machineId: typeof savedNet.machineId === 'string' && savedNet.machineId ? savedNet.machineId : crypto.randomUUID(),
     code: typeof savedNet.code === 'string' ? savedNet.code.slice(0, 32) : '',
-    sender: {
-        enabled: !!(savedNet.sender && savedNet.sender.enabled),
-        role: savedNet.sender && NET_ROLES.includes(savedNet.sender.role) ? savedNet.sender.role : 'main',
-        name: savedNet.sender && typeof savedNet.sender.name === 'string' && savedNet.sender.name ? savedNet.sender.name.slice(0, 40) : os.hostname().toUpperCase().slice(0, 40)
-    },
     target: cleanTarget(savedNet.target),
     lastLocalFile: typeof savedNet.lastLocalFile === 'string' ? savedNet.lastLocalFile : null
 };
-// Test hooks: run two copies on one PC with different ports
-const NET_PORT = Number(process.env.CNJ_PORT) || DEFAULT_PORT;
+// Test hook: a separate discovery port so test runs don't see real senders
 const NET_DISCOVERY = Number(process.env.CNJ_DISCOVERY_PORT) || DISCOVERY_PORT;
 
-let sender = null;
 let receiver = null;
 let receiverDeckKey = '';
 
@@ -409,36 +399,10 @@ function cleanTarget(t) {
 }
 
 function netSnapshot() {
-    const s = sender ? sender.snapshot() : { port: NET_PORT, error: '', addresses: [], clients: [] };
-    if (!sender) s.addresses = localAddresses().map(a => a.address);
     return {
         code: netConfig.code,
-        sender: { ...netConfig.sender, running: !!sender, ...s, blocked: state.source === 'network' },
         receiver: receiver ? receiver.snapshot() : { set: !!netConfig.target, name: netConfig.target ? netConfig.target.name || netConfig.target.address || '' : '', role: netConfig.target ? netConfig.target.role || '' : '', address: netConfig.target ? netConfig.target.address || '' : '', status: 'off', discovered: [] }
     };
-}
-
-// What this PC is showing, for its paired notes PCs. Not while it is itself showing another PC's notes.
-function pushToSender() {
-    if (!sender) return;
-    const status = state.source === 'live' ? state.live.status : (deck.slides.length ? 'ok' : 'no-presentation');
-    sender.setLive({ status, name: deck.name || state.live.name, index: state.index, count: state.count, title: state.title, notes: state.notes });
-}
-
-function updateSender() {
-    const want = netConfig.sender.enabled && state.source !== 'network';
-    if (want && !sender) {
-        sender = new NetSender({ id: netConfig.machineId, name: netConfig.sender.name, role: netConfig.sender.role, code: netConfig.code, port: NET_PORT, discoveryPort: NET_DISCOVERY });
-        sender.on('change', broadcastState);
-        sender.start();
-        sendDeck();
-        pushToSender();
-    } else if (!want && sender) {
-        sender.stop();
-        sender = null;
-    } else if (sender) {
-        sender.configure({ name: netConfig.sender.name, role: netConfig.sender.role, code: netConfig.code });
-    }
 }
 
 function startReceiver() {
@@ -495,14 +459,7 @@ function applyReceiver() {
 function setNetwork(changes) {
     if (!changes || typeof changes !== 'object') return;
     if (typeof changes.code === 'string') netConfig.code = changes.code.replace(/[^\w-]/g, '').slice(0, 32);
-    const s = changes.sender;
-    if (s && typeof s === 'object') {
-        if (typeof s.enabled === 'boolean') netConfig.sender.enabled = s.enabled;
-        if (NET_ROLES.includes(s.role)) netConfig.sender.role = s.role;
-        if (typeof s.name === 'string') netConfig.sender.name = s.name.replace(/[^\w .\-]/g, '').trim().slice(0, 40).toUpperCase() || os.hostname().toUpperCase().slice(0, 40);
-    }
     if (receiver) receiver.setCode(netConfig.code);
-    updateSender();
     saveSettingsSoon();
     broadcastState();
 }
@@ -775,7 +732,6 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
         if (startFile) loadDeck(path.resolve(startFile), { quiet: !argFile });
         if (state.source !== 'file') setSource(state.source);
-        else updateSender();
         registerGlobalKeys();
     });
 }
@@ -806,7 +762,6 @@ if (gotSingleInstanceLock) app.whenReady().then(createWindow);
 app.on('will-quit', () => {
     globalShortcut.unregisterAll();
     live.stop();
-    if (sender) sender.stop();
     if (receiver) receiver.stop();
     if (saveTimer) { clearTimeout(saveTimer); saveSettingsNow(); }
 });

@@ -222,7 +222,7 @@
     <div id="ip-modal-overlay" class="modal-overlay" onclick="hideModal('ip-modal-overlay')">
         <div class="focus-modal" onclick="event.stopPropagation()">
             <div style="font-size: 13px; margin-bottom: 12px; color: var(--blue); letter-spacing: 1px;">PAIR BY IP ADDRESS</div>
-            <div style="font-size: 12px; font-weight: normal; color: #aaa; margin-bottom: 14px; line-height: 1.5;">THE IP ADDRESS IS SHOWN IN THE NETWORK PANEL<br>ON THE POWERPOINT PC (THIS PC'S IP)</div>
+            <div style="font-size: 12px; font-weight: normal; color: #aaa; margin-bottom: 14px; line-height: 1.5;">THE IP ADDRESS IS SHOWN IN CLEAN NOTES JOE SENDER<br>ON THE POWERPOINT PC (THIS PC'S IP)</div>
             <input class="ctl-input" id="ip-input" placeholder="192.168.1.20" spellcheck="false" style="width: 100%; height: 34px; font-size: 16px; text-align: center; margin-bottom: 8px;">
             <div id="ip-error" style="font-size: 11px; color: #f87171; min-height: 16px; margin-bottom: 12px;"></div>
             <div style="display: flex; gap: 10px; justify-content: center;">
@@ -241,7 +241,7 @@
             <div class="header-right">
                 <div class="header-actions">
                     <button class="btn-top" id="btn-live" onclick="toggleLive()" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING">LIVE</button>
-                    <button class="btn-top" id="btn-network" onclick="toggleNetwork()" title="SHOW THE NOTES ANOTHER CLEAN NOTES JOE PC SENDS">NETWORK</button>
+                    <button class="btn-top" id="btn-network" onclick="toggleNetwork()" title="SHOW THE NOTES A POWERPOINT PC SENDS WITH CLEAN NOTES JOE SENDER">NETWORK</button>
                     <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO RELOADS BY ITSELF WHEN SAVED)">RELOAD</button>
                     <button class="btn-top is-blue" onclick="api.openDeck()">+ OPEN DECK</button>
                 </div>
@@ -322,7 +322,7 @@
         <div class="panel" id="network-panel">
             <div class="tc-ref-header"><span>NETWORK</span><span id="net-head-status" style="color:#777;"></span></div>
 
-            <div class="net-section">RECEIVE · THIS PC SHOWS NOTES FROM</div>
+            <div class="net-section">SHOW NOTES FROM A POWERPOINT PC RUNNING CLEAN NOTES JOE SENDER</div>
             <div class="ctl-row">
                 <span class="ctl-label">PAIRED WITH</span>
                 <button class="cue-select" id="net-pair-btn" onclick="openPairMenu(this)">NOT PAIRED</button>
@@ -332,39 +332,11 @@
                 <span class="net-status"><span class="tc-ref-dot" id="net-rx-dot"></span><span id="net-rx-text">OFF</span></span>
             </div>
 
-            <div class="net-section">SEND · OTHER PCS SHOW NOTES FROM THIS PC</div>
-            <div class="ctl-row">
-                <span class="ctl-label">SEND</span>
-                <div class="ctl-badges">
-                    <button class="badge" id="net-send-btn" onclick="api.setNetwork({ sender: { enabled: !state.net.sender.enabled } })">SEND TO NOTES PCS</button>
-                </div>
-            </div>
-            <div class="ctl-row">
-                <span class="ctl-label">ROLE</span>
-                <div class="ctl-badges">
-                    <button class="badge" id="net-role-main" onclick="api.setNetwork({ sender: { role: 'main' } })">MAIN</button>
-                    <button class="badge" id="net-role-backup" onclick="api.setNetwork({ sender: { role: 'backup' } })">BACKUP</button>
-                </div>
-            </div>
-            <div class="ctl-row">
-                <span class="ctl-label">THIS PC'S NAME</span>
-                <input class="ctl-input" id="net-name" maxlength="40" spellcheck="false">
-            </div>
-            <div class="ctl-row">
-                <span class="ctl-label">THIS PC'S IP</span>
-                <span class="net-value" id="net-ip"></span>
-            </div>
-            <div class="ctl-row">
-                <span class="ctl-label">RECEIVERS</span>
-                <span class="net-value" id="net-clients"></span>
-            </div>
-
-            <div class="net-section">BOTH</div>
             <div class="ctl-row">
                 <span class="ctl-label">SHOW CODE</span>
                 <input class="ctl-input" id="net-code" maxlength="32" spellcheck="false" placeholder="NONE">
             </div>
-            <div class="net-hint">OPTIONAL. USE THE SAME CODE ON EVERY PC IN THE SHOW TO KEEP OTHER SHOWS ON A SHARED NETWORK OUT.</div>
+            <div class="net-hint">OPTIONAL. USE THE SAME CODE HERE AND IN CLEAN NOTES JOE SENDER TO KEEP OTHER SHOWS ON A SHARED NETWORK OUT.</div>
         </div>
 
         <div id="settings-panels"></div>
@@ -455,7 +427,7 @@
                 const network = state && state.source === 'network';
                 list.innerHTML = network
                     ? `<div class="empty-playlist"><div class="empty-title">${state.net.receiver.healthy ? 'FOLLOWING ' + state.net.receiver.name.toUpperCase() : state.net.receiver.set ? 'WAITING FOR ' + (state.net.receiver.name || 'THE PAIRED PC').toUpperCase() : 'NOT PAIRED'}</div>
-                       <div class="empty-hint">${state.net.receiver.set ? 'ITS SLIDE LIST SHOWS HERE ONCE IT HAS A SAVED DECK OPEN' : 'CHOOSE A POWERPOINT PC UNDER <span class="empty-key">PAIRED WITH</span><br>IN THE NETWORK PANEL'}</div></div>`
+                       <div class="empty-hint">${state.net.receiver.set ? 'ITS SLIDE LIST SHOWS HERE ONCE POWERPOINT HAS A SAVED DECK OPEN' : 'OPEN CLEAN NOTES JOE SENDER ON THE POWERPOINT PC,<br>THEN CHOOSE IT UNDER <span class="empty-key">PAIRED WITH</span> IN THE NETWORK PANEL'}</div></div>`
                     : live
                     ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING POWERPOINT' : 'WAITING FOR POWERPOINT'}</div>
                        <div class="empty-hint">OPEN A SAVED .PPTX IN POWERPOINT<br>TO SEE ITS SLIDE LIST HERE</div></div>`
@@ -634,7 +606,7 @@
             for (const d of rx.discovered || []) {
                 items.push({ label: senderLabel(d) + (d.sameCode ? '' : '  (OTHER SHOW CODE)'), value: { id: d.id, name: d.name, role: d.role, address: d.address, port: d.port }, current: rx.id === d.id, dim: !d.sameCode });
             }
-            if (state.source === 'network' && !(rx.discovered || []).length) items.push({ label: 'NO SENDING PCS FOUND YET', value: null, dim: true });
+            if (state.source === 'network' && !(rx.discovered || []).length) items.push({ label: 'NO SENDERS FOUND · IS CLEAN NOTES JOE SENDER OPEN?', value: null, dim: true });
             items.push({ sep: true });
             items.push({ label: 'TYPE IP ADDRESS…', value: 'ip' });
             if (rx.set) items.push({ label: 'UNPAIR', value: 'unpair' });
@@ -666,7 +638,7 @@
         }
         $('ip-input').addEventListener('keydown', e => { if (e.key === 'Enter') pairByIp(); });
 
-        for (const [id, apply] of [['net-name', v => ({ sender: { name: v } })], ['net-code', v => ({ code: v })]]) {
+        for (const [id, apply] of [['net-code', v => ({ code: v })]]) {
             const input = $(id);
             input.addEventListener('change', () => api.setNetwork(apply(input.value.trim())));
             input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') input.blur(); });
@@ -699,24 +671,10 @@
             $('net-rx-text').textContent = text;
             $('net-rx-text').title = (rx.discoveryError || '');
 
-            const tx = n.sender;
-            $('net-send-btn').classList.toggle('active-hold', tx.enabled);
-            $('net-role-main').classList.toggle('active-hold', tx.role === 'main');
-            $('net-role-backup').classList.toggle('active-hold', tx.role === 'backup');
-            if (document.activeElement !== $('net-name')) $('net-name').value = tx.name;
             if (document.activeElement !== $('net-code')) $('net-code').value = n.code;
-            $('net-ip').textContent = (tx.addresses || []).join(', ') || 'NO NETWORK';
-            const clients = $('net-clients');
-            if (!tx.enabled) { clients.textContent = 'SEND IS OFF'; clients.className = 'net-value dim'; }
-            else if (tx.blocked) { clients.textContent = 'PAUSED WHILE NETWORK IS ON HERE'; clients.className = 'net-value dim'; }
-            else if (tx.error) { clients.textContent = tx.error; clients.className = 'net-value err'; }
-            else if (!(tx.clients || []).length) { clients.textContent = 'NONE CONNECTED'; clients.className = 'net-value dim'; }
-            else { clients.textContent = tx.clients.length + ': ' + tx.clients.map(c => c.name).join(', '); clients.className = 'net-value'; clients.style.color = '#22c55e'; }
-            if (clients.className !== 'net-value') clients.style.color = '';
 
             const head = [];
             if (on) head.push('RECEIVING');
-            if (tx.running) head.push('SENDING AS ' + ROLE_LABEL[tx.role]);
             $('net-head-status').textContent = head.join(' · ');
         }
 
