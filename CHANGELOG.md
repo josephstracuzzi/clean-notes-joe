@@ -9,6 +9,12 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.2.0] - 2026-11-10
+
+### Added
+- **SIZE** button (from Playback Joe): makes the operator console **SMALL**, **DEFAULT** or **LARGE**.
+  The output is never affected. The minimum window size follows it, and the size is remembered for the next launch.
+
 ## [0.1.0] - 2026-11-10
 
 First version, ported from the Python prototype to Electron and styled to match Playback Joe.

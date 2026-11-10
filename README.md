@@ -58,9 +58,9 @@ titles). Every release has a section in [CHANGELOG.md](CHANGELOG.md) and a git t
 version in `package.json` has no changelog section.
 
 To release:
-1. Add a `## [x.y.z] - date` section at the top of `CHANGELOG.md` describing the changes.
+1. Add a `## [x.y.z] - date` section at the top of `CHANGELOG.md` describing the changes, and commit it.
 2. Run `npm version patch` (fixes), `npm version minor` (new features) or `npm version major`. This checks the
-   changelog, bumps `package.json`, commits and creates the `vx.y.z` tag.
+   changelog has a section for the new version, bumps `package.json`, commits and creates the `vx.y.z` tag.
 3. `npm run build`, then `git push --follow-tags` and attach `dist/Clean Notes Joe x.y.z Portable.exe` to a GitHub
    release for the tag.
 
