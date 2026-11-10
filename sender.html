@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+    <title>CLEAN NOTES JOE SENDER</title>
+    <style>
+        /* Same look as Clean Notes Joe / Playback Joe */
+        * { box-sizing: border-box; }
+        :root { --blue: #0284c7; --blue-hover: #0369a1; --green: #28a745; --amber: #f59e0b; }
+        :root { --font-mono: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", "Ubuntu Mono", monospace; }
+        html, body { height: 100%; }
+        body { background: #121212; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 10px; user-select: none; text-transform: uppercase; overflow-y: auto; }
+        * { scrollbar-width: thin; scrollbar-color: #333 #181818; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #181818; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        .header { display: flex; align-items: flex-start; justify-content: space-between; height: 44px; flex-shrink: 0; gap: 10px; }
+        .header-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .header-logo { height: 50px; width: auto; display: block; margin-top: -10px; }
+        .badge-blue { background: var(--blue); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; }
+        .badge-sender { background: #222; color: #ddd; border: 1px solid #444; font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: bold; letter-spacing: 1px; white-space: nowrap; }
+        .on-air { font-family: var(--font-mono); font-size: 11px; font-weight: bold; letter-spacing: 0.5px; padding: 6px 10px; border-radius: 3px; white-space: nowrap; line-height: 13px; }
+
+        /* PowerPoint monitor (Playback Joe's PGM monitor) */
+        .monitor-wrapper { border: 2px solid #333; background: #000; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+        .monitor-wrapper.ok { border-color: var(--green); }
+        .monitor-wrapper.wait { border-color: #78350f; }
+        .monitor-bar { background: #1a1a1a; height: 31px; padding: 0 10px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; border-bottom: 1px solid #333;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px; white-space: nowrap; }
+        .monitor-wrapper.ok .monitor-bar { color: var(--green); }
+        .monitor-wrapper.wait .monitor-bar { color: #fbbf24; }
+        .monitor-bar span:first-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .monitor-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono); flex-shrink: 0; }
+        .slide-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 12px 4px; }
+        .slide-counter { font-family: var(--font-mono); font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; flex-shrink: 0; }
+        .slide-title { font-size: 13px; font-weight: bold; color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; text-align: right; }
+        .notes-preview { margin: 4px 12px 12px; padding: 10px 12px; background: #111; border: 1px solid #222; border-radius: 3px; height: 150px; overflow-y: auto;
+            text-transform: none; font-size: 14px; line-height: 1.45; color: #ddd; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+        .notes-preview.none { color: #555; font-style: italic; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+        /* Panels (Clean Notes Joe's settings panels) */
+        .panel { background: #000; border: 1px solid #333; border-radius: 4px; padding: 4px 12px 10px; flex-shrink: 0; }
+        .panel-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; color: #a3a3a3;
+            padding-bottom: 4px; border-bottom: 1px solid #1f1f1f; margin-bottom: 6px; font-family: var(--font-mono); }
+        .row { display: flex; align-items: center; gap: 8px; min-height: 28px; font-size: 10px; color: #888; font-weight: bold; letter-spacing: 0.5px; }
+        .label { width: 110px; flex-shrink: 0; }
+        .value { flex: 1; min-width: 0; font-family: var(--font-mono); color: #ccc; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .value.dim { color: #666; }
+        .value.green { color: #22c55e; }
+        .value.err { color: #f87171; white-space: normal; }
+        .badges { display: flex; gap: 3px; flex: 1; }
+        .badge { flex: 1; background: #1a1a1a; color: #777; border: 1px solid #333; padding: 5px 2px; font-size: 10px; border-radius: 3px; font-weight: bold; letter-spacing: 0.5px; cursor: pointer; font-family: inherit; outline: none; }
+        .badge:hover { background: #2a2a2a; color: #ddd; }
+        .badge.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .input { flex: 1; min-width: 0; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 3px; height: 24px; padding: 0 8px;
+            font-family: var(--font-mono); font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; outline: none; user-select: text; }
+        .input:focus { border-color: var(--blue); }
+        .input::placeholder { color: #555; }
+        .hint { font-size: 9px; color: #666; line-height: 1.5; margin-top: 2px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #555; flex-shrink: 0; display: inline-block; }
+        .dot.green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+        .dot.amber { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+        .dot.red { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+        .footer { font-size: 10px; color: #666; text-align: center; font-family: var(--font-mono); letter-spacing: 0.5px; margin-top: auto; padding-top: 4px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">
+            <img src="logo.png" alt="Clean Notes Joe" class="header-logo">
+            <span class="badge-sender">SENDER</span>
+            <span class="badge-blue" id="version"></span>
+        </div>
+        <span class="on-air" id="on-air"></span>
+    </div>
+
+    <div class="monitor-wrapper" id="monitor">
+        <div class="monitor-bar">
+            <span id="ppt-status">WAITING FOR POWERPOINT</span>
+            <span class="monitor-badge" id="ppt-badge" style="background:#222; color:#d4d4d4; border:1px solid #333;">POWERPOINT</span>
+        </div>
+        <div class="slide-row">
+            <span class="slide-counter" id="slide-counter">-- / --</span>
+            <span class="slide-title" id="slide-title"></span>
+        </div>
+        <div class="notes-preview none" id="notes">OPEN YOUR PRESENTATION IN POWERPOINT</div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-head"><span>SENDING</span><span id="send-head"></span></div>
+        <div class="row">
+            <span class="label">ROLE</span>
+            <div class="badges">
+                <button class="badge" id="role-main" onclick="api.setConfig({ role: 'main' })">MAIN</button>
+                <button class="badge" id="role-backup" onclick="api.setConfig({ role: 'backup' })">BACKUP</button>
+            </div>
+        </div>
+        <div class="row">
+            <span class="label">THIS PC'S NAME</span>
+            <input class="input" id="name" maxlength="40" spellcheck="false">
+        </div>
+        <div class="row">
+            <span class="label">SHOW CODE</span>
+            <input class="input" id="code" maxlength="32" spellcheck="false" placeholder="NONE">
+        </div>
+        <div class="hint">OPTIONAL. ENTER THE SAME CODE ON THE NOTES PCS.</div>
+        <div class="row">
+            <span class="label">THIS PC'S IP</span>
+            <span class="value" id="ip"></span>
+        </div>
+        <div class="row">
+            <span class="label">NOTES PCS</span>
+            <span class="value" id="clients"></span>
+        </div>
+    </div>
+
+    <div class="footer">
+        ON EACH NOTES PC: CLEAN NOTES JOE → NETWORK → PAIRED WITH → <span id="footer-name"></span><br>
+        LEAVE THIS WINDOW OPEN DURING THE SHOW
+    </div>
+
+    <script>
+        const api = window.senderAPI;
+        const $ = (id) => document.getElementById(id);
+        const two = (n) => String(n).padStart(2, '0');
+        const ROLE = { main: 'MAIN', backup: 'BACKUP' };
+
+        document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
+        for (const [id, key] of [['name', 'name'], ['code', 'code']]) {
+            const input = $(id);
+            input.addEventListener('change', () => api.setConfig({ [key]: input.value.trim() }));
+            input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') input.blur(); });
+        }
+
+        function render(s) {
+            $('version').textContent = 'V' + s.version;
+            document.title = `CLEAN NOTES JOE SENDER ${s.version}`;
+            const p = s.ppt, n = s.net, c = s.config;
+            const ok = p.status === 'ok';
+
+            // PowerPoint
+            $('monitor').className = 'monitor-wrapper ' + (ok ? 'ok' : 'wait');
+            $('ppt-status').textContent = ok ? (p.deckName || p.name || 'POWERPOINT').toUpperCase() : p.message;
+            const badge = $('ppt-badge');
+            badge.textContent = ok ? 'FOLLOWING' : 'WAITING';
+            badge.style.cssText = ok ? 'background:#16a34a; color:#fff; border:1px solid #16a34a;' : 'background:#78350f; color:#fff; border:1px solid #f59e0b;';
+            $('slide-counter').textContent = ok && p.count ? `${two(p.index + 1)} / ${two(p.count)}` : '-- / --';
+            $('slide-title').textContent = ok ? (p.title || 'SLIDE ' + (p.index + 1)) : '';
+            const notes = $('notes');
+            if (ok && p.notes) { notes.className = 'notes-preview'; notes.textContent = p.notes.replace(/\u2028/g, '\n'); }
+            else { notes.className = 'notes-preview none'; notes.textContent = ok ? 'NO SPEAKER NOTES ON THIS SLIDE' : 'OPEN YOUR PRESENTATION IN POWERPOINT'; }
+
+            // Sending
+            $('role-main').classList.toggle('active', c.role === 'main');
+            $('role-backup').classList.toggle('active', c.role === 'backup');
+            if (document.activeElement !== $('name')) $('name').value = c.name;
+            if (document.activeElement !== $('code')) $('code').value = c.code;
+            $('ip').textContent = (n.addresses || []).join(', ') || 'NO NETWORK';
+            $('footer-name').textContent = c.name + ' · ' + ROLE[c.role];
+
+            const clients = $('clients');
+            const count = (n.clients || []).length;
+            if (n.error) { clients.textContent = n.error; clients.className = 'value err'; }
+            else if (!count) { clients.textContent = 'NONE CONNECTED YET'; clients.className = 'value dim'; }
+            else { clients.textContent = count + ': ' + n.clients.map(x => x.name).join(', '); clients.className = 'value green'; }
+
+            // Header: what the notes PCs are getting, at a glance
+            const air = $('on-air');
+            if (n.error) { air.textContent = 'NOT SENDING'; air.style.cssText = 'background:#7f1d1d; color:#fff; border:1px solid #dc2626;'; }
+            else if (count) { air.textContent = `SENDING TO ${count}`; air.style.cssText = 'background:#16a34a; color:#fff; border:1px solid #22c55e;'; }
+            else { air.textContent = 'READY'; air.style.cssText = 'background:#222; color:#d4d4d4; border:1px solid #444;'; }
+            $('send-head').textContent = ROLE[c.role] + (n.port ? ' · PORT ' + n.port : '');
+        }
+
+        api.onState(render);
+        api.getInitial().then(s => { if (s) render(s); });
+    </script>
+</body>
+</html>

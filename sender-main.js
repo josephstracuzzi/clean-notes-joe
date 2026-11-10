@@ -1,0 +1,237 @@
+// ============================================================================
+// Clean Notes Joe Sender - Main Process
+// Runs on a PowerPoint PC: follows PowerPoint and sends the current slide and notes to the notes PCs
+// paired with it. Starts sending as soon as it opens. Shares live.js (PowerPoint), network.js (sync)
+// and pptx.js (slide list) with Clean Notes Joe, so the two can't drift apart.
+// ============================================================================
+
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const crypto = require('crypto');
+const { readPresentation } = require('./pptx');
+const { LiveFollower } = require('./live');
+const { NetSender, deckHash, DEFAULT_PORT, DISCOVERY_PORT } = require('./network');
+// Read here: when run straight from its script, app.getVersion() doesn't find package.json
+const VERSION = require('./package.json').version;
+
+// Its own settings folder and single-instance lock, separate from Clean Notes Joe's (also when run
+// from the source folder with `npm run start:sender`, where both would otherwise share one)
+app.setName('Clean Notes Joe Sender');
+app.setPath('userData', path.join(app.getPath('appData'), 'clean-notes-joe-sender'));
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) app.exit(0);
+
+let win = null;
+app.on('second-instance', () => {
+    if (win && !win.isDestroyed()) {
+        if (win.isMinimized()) win.restore();
+        win.show();
+        win.focus();
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Settings (userData/settings.json)
+// ---------------------------------------------------------------------------
+const ROLES = ['main', 'backup'];
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+const defaultName = () => os.hostname().toUpperCase().replace(/[^\w .\-]/g, '').slice(0, 40) || 'POWERPOINT PC';
+
+function loadConfig() {
+    let d = {};
+    try { d = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) || {}; } catch (e) { /* first launch */ }
+    return {
+        machineId: typeof d.machineId === 'string' && d.machineId ? d.machineId : crypto.randomUUID(),
+        name: typeof d.name === 'string' && d.name ? d.name.slice(0, 40) : defaultName(),
+        role: ROLES.includes(d.role) ? d.role : 'main',
+        code: typeof d.code === 'string' ? d.code.slice(0, 32) : ''
+    };
+}
+
+const config = loadConfig();
+
+function saveConfig() {
+    try {
+        fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+        fs.writeFileSync(settingsPath + '.tmp', JSON.stringify(config, null, 2), 'utf-8');
+        fs.renameSync(settingsPath + '.tmp', settingsPath);
+    } catch (err) {
+        console.error('Failed to save settings:', err);
+    }
+}
+saveConfig(); // keeps the machine id stable from the first launch
+
+// ---------------------------------------------------------------------------
+// PowerPoint -> what gets sent
+// ---------------------------------------------------------------------------
+const ppt = {
+    status: 'not-running',   // ok | not-running | no-presentation | busy | error | unsupported
+    message: 'WAITING FOR POWERPOINT',
+    name: '', file: null, index: 0, count: 0, title: '', notes: ''
+};
+let deck = { file: null, name: '', slides: [] };
+let watchedFile = null;
+
+function loadDeck(file) {
+    try {
+        deck = { file, name: path.basename(file), slides: readPresentation(file).slides };
+    } catch (err) {
+        deck = { file, name: path.basename(file), slides: [] };
+    }
+    if (watchedFile !== file) {
+        if (watchedFile) fs.unwatchFile(watchedFile);
+        watchedFile = file;
+        // Saved in PowerPoint: re-read so the notes PCs' slide lists stay current
+        fs.watchFile(file, { interval: 1000 }, (cur, prev) => {
+            if (cur.mtimeMs !== prev.mtimeMs && cur.size > 0) setTimeout(() => { loadDeck(file); push(); }, 600);
+        });
+    }
+}
+
+function clearDeck(name) {
+    if (watchedFile) fs.unwatchFile(watchedFile);
+    watchedFile = null;
+    deck = { file: null, name: name || '', slides: [] };
+}
+
+const MESSAGES = {
+    'not-running': 'WAITING FOR POWERPOINT',
+    'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
+    busy: 'POWERPOINT IS BUSY',
+    unsupported: 'NEEDS POWERPOINT ON WINDOWS',
+    error: 'POWERPOINT ERROR'
+};
+
+function onPowerPoint(s) {
+    if (s.state === 'ok') {
+        if (s.file !== deck.file) {
+            const readable = s.file && /\.pptx$/i.test(s.file) && fs.existsSync(s.file);
+            if (readable) loadDeck(s.file); else clearDeck(s.name);
+        }
+        const slide = deck.slides[s.index - 1];
+        Object.assign(ppt, {
+            status: 'ok', message: '', name: s.name, file: s.file || null,
+            index: Math.max(0, s.index - 1), count: s.count,
+            // Windows gives the notes and title straight from PowerPoint (unsaved edits included)
+            title: s.title || (slide ? slide.title : ''),
+            notes: typeof s.notes === 'string' ? s.notes : (slide ? slide.notes : '')
+        });
+    } else {
+        // End-of-show black screen or a dialog open: keep sending the last slide
+        if (s.state === 'busy' && ppt.status === 'ok') return;
+        ppt.status = s.state;
+        ppt.message = s.message || MESSAGES[s.state] || 'WAITING FOR POWERPOINT';
+    }
+    push();
+}
+
+// Test hook: CNJ_FAKE_POWERPOINT=<deck.pptx> pretends PowerPoint shows that deck; fakeGo(n) changes slide
+function createFollower() {
+    const fakeFile = process.env.CNJ_FAKE_POWERPOINT;
+    if (!fakeFile) return new LiveFollower(onPowerPoint);
+    let index = 1;
+    const emit = () => {
+        const slides = readPresentation(fakeFile).slides;
+        index = Math.max(1, Math.min(index, slides.length));
+        onPowerPoint({ state: 'ok', file: path.resolve(fakeFile), name: path.basename(fakeFile), index, count: slides.length });
+    };
+    global.fakeGo = (n) => { index = n; emit(); };
+    global.fakeQuit = () => onPowerPoint({ state: 'not-running' });
+    return { start: () => setTimeout(emit, 300), stop: () => {} };
+}
+
+const follower = createFollower();
+
+// ---------------------------------------------------------------------------
+// Sending
+// ---------------------------------------------------------------------------
+const sender = new NetSender({
+    id: config.machineId, name: config.name, role: config.role, code: config.code,
+    port: Number(process.env.CNJ_PORT) || DEFAULT_PORT,
+    discoveryPort: Number(process.env.CNJ_DISCOVERY_PORT) || DISCOVERY_PORT
+});
+sender.on('change', () => broadcast());
+
+function push() {
+    sender.setDeck({ name: deck.name, slides: deck.slides, hash: deckHash(deck.slides) });
+    sender.setLive({
+        status: ppt.status === 'unsupported' ? 'error' : ppt.status,
+        name: ppt.name, index: ppt.index, count: ppt.count, title: ppt.title, notes: ppt.notes
+    });
+    broadcast();
+}
+
+function publicState() {
+    return {
+        version: VERSION,
+        config: { name: config.name, role: config.role, code: config.code },
+        ppt: { ...ppt, deckName: deck.name, slides: deck.slides.length },
+        net: sender.snapshot()
+    };
+}
+
+function broadcast() {
+    if (win && !win.isDestroyed()) win.webContents.send('state', publicState());
+}
+
+// ---------------------------------------------------------------------------
+// Window
+// ---------------------------------------------------------------------------
+function createWindow() {
+    win = new BrowserWindow({
+        title: 'CLEAN NOTES JOE SENDER ' + VERSION,
+        icon: path.join(__dirname, 'icon.png'),
+        autoHideMenuBar: true,
+        backgroundColor: '#121212',
+        width: 560,
+        height: 720,
+        minWidth: 480,
+        minHeight: 560,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            backgroundThrottling: false,
+            preload: path.join(__dirname, 'sender-preload.js')
+        }
+    });
+    const workArea = screen.getPrimaryDisplay().workArea;
+    win.setPosition(workArea.x + 40, workArea.y + 40);
+    win.loadFile(path.join(__dirname, 'sender.html'));
+    win.on('closed', () => { win = null; app.quit(); });
+}
+
+if (gotSingleInstanceLock) {
+    app.whenReady().then(() => {
+        createWindow();
+        sender.start();
+        follower.start();
+        push();
+    });
+}
+
+app.on('will-quit', () => {
+    follower.stop();
+    sender.stop();
+});
+app.on('window-all-closed', () => app.quit());
+
+// ---------------------------------------------------------------------------
+// IPC
+// ---------------------------------------------------------------------------
+const fromWindow = (event) => !!win && !win.isDestroyed() && event.sender === win.webContents;
+
+ipcMain.handle('get-initial', (event) => (fromWindow(event) ? publicState() : null));
+
+ipcMain.on('set-config', (event, changes) => {
+    if (!fromWindow(event) || !changes || typeof changes !== 'object') return;
+    if (typeof changes.name === 'string') config.name = changes.name.replace(/[^\w .\-]/g, '').trim().toUpperCase().slice(0, 40) || defaultName();
+    if (ROLES.includes(changes.role)) config.role = changes.role;
+    if (typeof changes.code === 'string') config.code = changes.code.replace(/[^\w-]/g, '').slice(0, 32);
+    sender.configure({ name: config.name, role: config.role, code: config.code });
+    saveConfig();
+    broadcast();
+});

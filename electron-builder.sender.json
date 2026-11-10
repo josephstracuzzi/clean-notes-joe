@@ -1,0 +1,33 @@
+{
+  "appId": "com.cleannotesjoe.sender",
+  "productName": "Clean Notes Joe Sender",
+  "extraMetadata": {
+    "main": "sender-main.js",
+    "name": "clean-notes-joe-sender",
+    "description": "Sends PowerPoint's current slide and notes to Clean Notes Joe on other PCs"
+  },
+  "directories": {
+    "output": "dist"
+  },
+  "win": {
+    "target": [
+      "portable"
+    ],
+    "icon": "logo.ico"
+  },
+  "portable": {
+    "artifactName": "${productName} ${version} Portable.exe"
+  },
+  "files": [
+    "package.json",
+    "sender-main.js",
+    "sender-preload.js",
+    "sender.html",
+    "live.js",
+    "network.js",
+    "pptx.js",
+    "logo.png",
+    "logo.ico",
+    "icon.png"
+  ]
+}
