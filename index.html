@@ -807,6 +807,7 @@
             ['TIMES', '"Times New Roman", Times, serif'],
             ['MONO', 'var(--font-mono), "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace']
         ];
+        const HEADER_COLORS = [['MATCH', 'auto'], ['12:00', '#ffffff'], ['12:00', '#9ca3af'], ['12:00', '#facc15'], ['12:00', '#4ade80'], ['12:00', '#f87171']];
         const PRESETS = [
             ['#ffffff', '#000000'], ['#facc15', '#000000'], ['#4ade80', '#000000'],
             ['#67e8f9', '#000000'], ['#ffffff', '#0b1d3a'], ['#000000', '#ffffff']
@@ -843,7 +844,9 @@
             ]],
             ['SCREEN', [
                 badgeRow('HEADER BAR', [['SLIDE #', 'showSlideNumber'], ['TIMER', 'showTimer'], ['CLOCK', 'showClock']]),
-                sliderRow('HEADER SIZE', 'headerSize', 3, 12, 0.5, v => v.toFixed(1) + '%', s => !(s.showSlideNumber || s.showTimer || s.showClock)),
+                sliderRow('HEADER SIZE', 'headerSize', 3, 20, 0.5, v => v.toFixed(1) + '%', s => !(s.showSlideNumber || s.showTimer || s.showClock)),
+                { type: 'headerColors', label: 'HEADER COLOUR' },
+                { type: 'segment', label: 'HEADER FONT', key: 'headerFont', options: [['NOTES FONT', 'notes'], ['MONO', 'mono']] },
                 badgeRow('LAYOUT', [['CENTRE VERTICALLY', 'centerVertical'], ['MIRROR', 'mirror']]),
                 badgeRow('KEYS', [['CTRL+ALT KEYS WORK IN ANY APP', 'globalKeys']])
             ]]
@@ -919,6 +922,30 @@
                 controls.push({ update(s) {
                     const f = FONTS.find(([, css]) => css === s.fontFamily);
                     b.textContent = f ? f[0] : 'CUSTOM';
+                } });
+            } else if (r.type === 'headerColors') {
+                // MATCH follows the notes colour; the rest are fixed. Each swatch shows a clock in that colour on the background.
+                const wrap = document.createElement('div');
+                wrap.className = 'swatches';
+                const buttons = HEADER_COLORS.map(([label, value]) => {
+                    const b = document.createElement('button');
+                    b.className = 'swatch';
+                    b.textContent = label;
+                    b.style.fontSize = '10px';
+                    b.style.fontFamily = 'var(--font-mono)';
+                    b.title = value === 'auto' ? 'SAME COLOUR AS THE NOTES' : value.toUpperCase();
+                    b.onclick = () => set({ headerColor: value });
+                    wrap.appendChild(b);
+                    return [b, value];
+                });
+                row.appendChild(wrap);
+                controls.push({ update(s) {
+                    for (const [b, value] of buttons) {
+                        b.style.background = s.background;
+                        b.style.color = value === 'auto' ? s.color : value;
+                        b.classList.toggle('is-current', (s.headerColor || 'auto').toLowerCase() === value);
+                        b.disabled = !(s.showSlideNumber || s.showTimer || s.showClock);
+                    }
                 } });
             } else if (r.type === 'presets') {
                 const wrap = document.createElement('div');

@@ -9,6 +9,16 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [Unreleased]
+
+### Changed
+- **HEADER SIZE** goes up to 20% of the screen (was 12%). If the slide number, timer and clock don't fit side by side, the
+  header text shrinks to fit instead of being cut off; the timer stays centred.
+- **HEADER COLOUR** presets in the SCREEN panel: MATCH (the notes colour, as before), white, grey, yellow, green and red.
+  The band and line under the header follow the chosen colour.
+- The header now uses the **notes font** (with fixed-width digits so the clock doesn't jiggle) instead of a monospace font.
+  **HEADER FONT** switches back to MONO.
+
 ## [0.5.3] - 2026-11-10
 
 ### Fixed

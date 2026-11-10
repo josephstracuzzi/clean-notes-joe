@@ -19,10 +19,10 @@
     .nj-content.nj-enter { animation: nj-enter 0.18s ease-out; }
     @keyframes nj-enter { from { opacity: 0; } to { opacity: 1; } }
     /* Header bar: slide number left, timer centre, clock right, each in a fixed slot */
-    .nj-header { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; box-sizing: border-box;
-        font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+    .nj-header { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: 1fr auto 1fr; column-gap: 0.8em; align-items: center; box-sizing: border-box;
         font-weight: bold; letter-spacing: 0.05em; white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1; }
-    .nj-header span { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
+    /* Timer centred; slide number and clock get the room on either side of it */
+    .nj-header span { min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: 0.9; }
     .nj-header .nj-h-left { text-align: left; }
     .nj-header .nj-h-mid { text-align: center; }
     .nj-header .nj-h-right { text-align: right; }
@@ -45,6 +45,8 @@
         const two = n => String(n).padStart(2, '0');
         return (h ? two(h) + ':' : '') + two(m) + ':' + two(sec);
     }
+
+    const MONO = '"Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace';
 
     // A #rrggbb colour at the given opacity
     function tint(hex, alpha) {
@@ -204,14 +206,20 @@
 
             // Header bar: a faint band in the text colour with a thin line under it; text scales with the bar
             const line = Math.max(1, Math.round(2 * u));
+            // Header colour: its own preset, or the notes colour; the band and line are tinted with it.
+            // Font: the notes font by default (digits fixed-width so the clock doesn't jiggle), or monospace.
+            const hc = s.headerColor && s.headerColor !== 'auto' ? s.headerColor : s.color;
             Object.assign(this.header.style, {
-                display: showHeader ? 'flex' : 'none',
+                display: showHeader ? 'grid' : 'none',
                 height: headerH + 'px',
                 padding: `0 ${padX}px`,
                 fontSize: Math.round(headerH * 0.5) + 'px',
-                background: tint(s.color, 0.08),
-                borderBottom: `${line}px solid ${tint(s.color, 0.3)}`
+                fontFamily: s.headerFont === 'mono' ? MONO : s.fontFamily,
+                color: hc,
+                background: tint(hc, 0.08),
+                borderBottom: `${line}px solid ${tint(hc, 0.3)}`
             });
+            this.headerFontPx = Math.round(headerH * 0.5);
             this.slideLabel.textContent = s.showSlideNumber && st.count ? `SLIDE ${st.index + 1} / ${st.count}` : '';
             Object.assign(this.more.style, { fontSize: Math.round(26 * u) + 'px', bottom: Math.round(H * 0.012) + 'px' });
             const barH = Math.max(2, Math.round(4 * u)) + 'px';
@@ -227,8 +235,24 @@
             if (!s || !st) return;
             const timer = s.showTimer && st.slideStartedAt ? fmtTime(Date.now() - st.slideStartedAt) : '';
             const clock = s.showClock ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const changed = this.timerLabel.textContent !== timer || this.clockLabel.textContent !== clock;
             if (this.timerLabel.textContent !== timer) this.timerLabel.textContent = timer;
             if (this.clockLabel.textContent !== clock) this.clockLabel.textContent = clock;
+            if (changed || this.header.dataset.fitFor !== this.slideLabel.textContent + '|' + this.headerFontPx) this.fitHeader();
+        }
+
+        // Header text starts at half the bar's height and shrinks only if the three items don't fit side by side
+        fitHeader() {
+            if (!this.headerFontPx || this.header.style.display === 'none') return;
+            const spans = [this.slideLabel, this.timerLabel, this.clockLabel];
+            let px = this.headerFontPx;
+            this.header.style.fontSize = px + 'px';
+            const overflows = () => spans.some(sp => sp.scrollWidth > sp.clientWidth + 1);
+            while (overflows() && px > this.headerFontPx * 0.4) {
+                px = Math.floor(px * 0.92);
+                this.header.style.fontSize = px + 'px';
+            }
+            this.header.dataset.fitFor = this.slideLabel.textContent + '|' + this.headerFontPx;
         }
 
         applyOffset() {

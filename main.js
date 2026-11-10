@@ -58,6 +58,8 @@ const DEFAULT_SETTINGS = {
     showClock: true,
     showTimer: false,
     headerSize: 5,         // header bar (slide number / timer / clock), % of screen height
+    headerColor: 'auto',   // 'auto' follows the notes colour, or a #rrggbb
+    headerFont: 'notes',   // 'notes' = the notes font (fixed-width digits), 'mono' = monospace
     emptyText: '— NO NOTES —',
     globalKeys: true
 };
@@ -85,7 +87,9 @@ const SETTING_RULES = {
     showSlideNumber: v => typeof v === 'boolean',
     showClock: v => typeof v === 'boolean',
     showTimer: v => typeof v === 'boolean',
-    headerSize: v => Number.isFinite(v) && v >= 3 && v <= 12,
+    headerSize: v => Number.isFinite(v) && v >= 3 && v <= 20,
+    headerColor: v => v === 'auto' || /^#[0-9a-f]{6}$/i.test(v),
+    headerFont: v => ['notes', 'mono'].includes(v),
     emptyText: v => typeof v === 'string' && v.length <= 200,
     globalKeys: v => typeof v === 'boolean'
 };
