@@ -23,6 +23,7 @@ Versions follow `MAJOR.MINOR.PATCH`:
   bring it back, hover for the status, right-click for Show / Quit). Closing the window asks first: **Minimize to tray**,
   **Quit sender** or **Cancel**. The bottom of the window now just says **DO NOT CLOSE THIS WINDOW**. Opening it again
   while it's running brings the running one back instead of starting a second copy.
+- New default for the header bar: **slide number and clock on, timer off** (RESET ALL applies it to an existing setup).
 - The console's smallest window width is now 1100 px (as in Playback Joe); below 1250 px the logo and header buttons shrink.
 
 ## [0.4.0] - 2026-11-10

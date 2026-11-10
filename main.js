@@ -55,8 +55,8 @@ const DEFAULT_SETTINGS = {
     scrollSpeed: 40,       // points per second at 1080p
     scrollDelay: 3,        // seconds after a slide change before scrolling starts
     showSlideNumber: true,
-    showClock: false,
-    showTimer: true,
+    showClock: true,
+    showTimer: false,
     headerSize: 5,         // header bar (slide number / timer / clock), % of screen height
     emptyText: '— NO NOTES —',
     globalKeys: true
