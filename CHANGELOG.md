@@ -9,7 +9,7 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
-## [Unreleased]
+## [0.5.0] - 2026-11-10
 
 ### Changed
 - The source buttons are now **LOCAL** (was LIVE), **NETWORK** and **FILE**, followed by **LOAD** (was + OPEN DECK) and
