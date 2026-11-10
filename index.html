@@ -141,7 +141,14 @@
 
         /* Display settings */
         .panel { background: #000; border: 1px solid #333; border-radius: 4px; padding: 4px 12px 8px 12px; margin-top: 10px; }
-        .panel .tc-ref-header { margin-bottom: 6px; }
+        .panel .tc-ref-header { margin-bottom: 6px; cursor: pointer; }
+        .panel .tc-ref-header:hover > span:first-child { color: #fff; }
+        /* Collapsible panels: click the header; the arrow shows open (▾) or closed (▸) */
+        .panel-arrow { display: inline-block; width: 12px; color: #777; transition: transform 0.15s ease; }
+        .panel.collapsed .panel-arrow { transform: rotate(-90deg); }
+        .panel.collapsed { padding-bottom: 4px; }
+        .panel.collapsed > .tc-ref-header { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .panel.collapsed > :not(.tc-ref-header) { display: none; }
         .panel-reset { background: none; border: none; color: #777; font-size: 10px; font-family: var(--font-mono); padding: 0; letter-spacing: 0.5px; }
         .panel-reset:hover { color: #fff; }
         .ctl-row { display: flex; align-items: center; gap: 8px; min-height: 26px; font-size: 10px; color: #888; font-weight: bold; letter-spacing: 0.5px; }
@@ -852,7 +859,7 @@
                     reset.className = 'panel-reset';
                     reset.textContent = 'RESET ALL';
                     reset.title = 'PUT EVERY DISPLAY SETTING BACK TO ITS DEFAULT';
-                    reset.onclick = () => api.resetSettings();
+                    reset.onclick = (e) => { e.stopPropagation(); api.resetSettings(); };
                     head.appendChild(reset);
                 }
                 panel.appendChild(head);
@@ -950,6 +957,30 @@
             $('global-hint').style.display = settings.globalKeys ? '' : 'none';
         }
 
+        // ---------------------------------------------------------------- collapsible panels
+        // Which panels are closed is remembered on this PC (browser storage; a missing or blocked store just means all open)
+        function setupCollapsiblePanels() {
+            let closed = [];
+            try { closed = JSON.parse(localStorage.getItem('cnj-closed-panels') || '[]'); } catch (e) { closed = []; }
+            for (const panel of document.querySelectorAll('.right-pane .panel')) {
+                const head = panel.querySelector(':scope > .tc-ref-header');
+                const title = head.firstElementChild;
+                const name = title.textContent.trim();
+                const arrow = document.createElement('span');
+                arrow.className = 'panel-arrow';
+                arrow.textContent = '▾';
+                title.prepend(arrow);
+                head.title = 'CLICK TO OPEN OR CLOSE';
+                panel.classList.toggle('collapsed', closed.includes(name));
+                head.addEventListener('click', () => {
+                    panel.classList.toggle('collapsed');
+                    const now = [...document.querySelectorAll('.right-pane .panel.collapsed > .tc-ref-header > span:first-child')]
+                        .map(t => t.textContent.replace('▾', '').trim());
+                    try { localStorage.setItem('cnj-closed-panels', JSON.stringify(now)); } catch (e) { /* not remembered */ }
+                });
+            }
+        }
+
         // ---------------------------------------------------------------- keys
         const KEYS = { ArrowRight: 'next', PageDown: 'next', ArrowLeft: 'prev', PageUp: 'prev', ArrowDown: 'scroll-down', ArrowUp: 'scroll-up',
             ' ': 'toggle-pause', Home: 'top', End: 'last', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller' };
@@ -965,6 +996,7 @@
 
         // ---------------------------------------------------------------- start
         buildSettings();
+        setupCollapsiblePanels();
         api.getInitial().then(init => {
             for (const el of document.querySelectorAll('[data-app-version]')) el.textContent = 'V' + init.version;
             document.title = `CLEAN NOTES JOE ${init.version} - OPERATOR`;
