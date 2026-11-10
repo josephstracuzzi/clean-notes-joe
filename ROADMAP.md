@@ -12,7 +12,8 @@ Ideas agreed for later, in no particular order. When one is built, it moves to C
 - **LibreOffice support**: open LibreOffice Impress files (`.odp`) in file mode, and follow a running LibreOffice
   Impress live, in Clean Notes Joe and in the Sender. Impress can already save as `.pptx`, which works today.
 - **Clearer source indicator**: make it obvious at a glance whether the notes come from **NETWORK** (and which PC),
-  **LIVE** (PowerPoint on this PC) or a **LOADED FILE**. For example, one prominent source label in the header in its
-  own colour, rather than the small badge on the PGM bar and the line under it.
+  **LIVE** (PowerPoint on this PC) or a **LOADED FILE**, shown in the cuelist (slide list) area on the left: a
+  prominent source label in its own colour above or around the slide list, rather than relying on the small badge
+  on the PGM bar and the line under it.
 - **Mac builds**: the code has a macOS live path (AppleScript), untested; builds were dropped to focus on Windows.
 - **Remote slide control**: deliberately not built (network sync is one way). Revisit only if wanted.
