@@ -9,6 +9,14 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [Unreleased]
+
+### Changed
+- The source buttons are now **LOCAL** (was LIVE), **NETWORK** and **FILE**, followed by **LOAD** (was + OPEN DECK) and
+  **REFRESH** (was RELOAD). Only the active source is lit: green when working, amber while waiting, red when the network
+  connection is lost. FILE switches back to the loaded deck; LOAD opens a new one.
+- The console's smallest window width is now 1100 px (as in Playback Joe); below 1250 px the logo and header buttons shrink.
+
 ## [0.4.0] - 2026-11-10
 
 ### Added

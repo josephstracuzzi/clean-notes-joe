@@ -44,6 +44,15 @@
         .btn-top.is-green { background: #16a34a; color: #fff; border-color: #22c55e; }
         .btn-top.is-red { background: #7f1d1d; color: #fff; border-color: #dc2626; }
         .btn-top.is-amber { background: #78350f; color: #fff; border-color: var(--amber); }
+        /* Divider between the source buttons (LOCAL / NETWORK / FILE) and the file actions (LOAD / REFRESH) */
+        .header-sep { width: 1px; height: 18px; background: #3a3a3a; margin: 0 4px; }
+        /* Narrow console window (as in Playback Joe): smaller logo and tighter header buttons so they keep clear */
+        @media (max-width: 1250px) {
+            .header-actions { gap: 4px; }
+            .header-actions .btn-top { padding: 6px 7px; }
+            .header-sep { margin: 0 2px; }
+            .header-logo { height: 32px !important; margin-top: -2px !important; }
+        }
 
         /* Hand-drawn dropdown list (same as Playback Joe's PATTERN / SIZE lists) */
         #pick-menu { display: none; position: fixed; z-index: 3000; background: #1f1f1f; border: 1px solid #555; border-radius: 4px; padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); max-height: 80vh; overflow-y: auto; }
@@ -240,10 +249,12 @@
             </div>
             <div class="header-right">
                 <div class="header-actions">
-                    <button class="btn-top" id="btn-live" onclick="toggleLive()" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING">LIVE</button>
-                    <button class="btn-top" id="btn-network" onclick="toggleNetwork()" title="SHOW THE NOTES A POWERPOINT PC SENDS WITH CLEAN NOTES JOE SENDER">NETWORK</button>
-                    <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO RELOADS BY ITSELF WHEN SAVED)">RELOAD</button>
-                    <button class="btn-top is-blue" onclick="api.openDeck()">+ OPEN DECK</button>
+                    <button class="btn-top" id="btn-live" onclick="api.setSource('live')" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING ON THIS PC">LOCAL</button>
+                    <button class="btn-top" id="btn-network" onclick="api.setSource('network')" title="SHOW THE NOTES A POWERPOINT PC SENDS WITH CLEAN NOTES JOE SENDER">NETWORK</button>
+                    <button class="btn-top" id="btn-file" onclick="api.setSource('file')" title="SHOW THE NOTES OF THE LOADED .PPTX FILE">FILE</button>
+                    <span class="header-sep"></span>
+                    <button class="btn-top is-blue" id="btn-load" onclick="api.openDeck()" title="OPEN A .PPTX FILE">LOAD</button>
+                    <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO REFRESHES BY ITSELF WHEN SAVED)">REFRESH</button>
                 </div>
                 <div class="format-hint" id="deck-hint">ACCEPTED: PPTX</div>
             </div>
@@ -316,7 +327,7 @@
                 <button class="btn-prev" id="btn-prev" onclick="api.action('prev')">◀ PREV</button>
                 <button class="btn-take" id="btn-next" onclick="api.action('next')">NEXT ▶</button>
             </div>
-            <div class="controls-note" id="controls-note" style="display: none;">LIVE: CHANGE SLIDES IN POWERPOINT</div>
+            <div class="controls-note" id="controls-note" style="display: none;">LOCAL: CHANGE SLIDES IN POWERPOINT</div>
         </div>
 
         <div class="panel" id="network-panel">
@@ -432,7 +443,7 @@
                     ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING POWERPOINT' : 'WAITING FOR POWERPOINT'}</div>
                        <div class="empty-hint">OPEN A SAVED .PPTX IN POWERPOINT<br>TO SEE ITS SLIDE LIST HERE</div></div>`
                     : `<div class="empty-playlist"><div class="empty-title">NO DECK LOADED</div>
-                       <div class="empty-hint">CLICK <span class="empty-key">+ OPEN DECK</span> TO BEGIN${state && state.liveSupported ? '<br>OR <span class="empty-key green">LIVE</span> TO FOLLOW POWERPOINT' : ''}</div></div>`;
+                       <div class="empty-hint">CLICK <span class="empty-key">LOAD</span> TO OPEN A .PPTX${state && state.liveSupported ? '<br>OR <span class="empty-key green">LOCAL</span> TO FOLLOW POWERPOINT ON THIS PC' : ''}</div></div>`;
                 updateDeckHint();
                 return;
             }
@@ -587,12 +598,6 @@
         }
 
         // ---------------------------------------------------------------- network
-        function toggleLive() {
-            api.setSource(state.source === 'live' ? 'file' : 'live');
-        }
-        function toggleNetwork() {
-            api.setSource(state.source === 'network' ? 'file' : 'network');
-        }
 
         const ROLE_LABEL = { main: 'MAIN', backup: 'BACKUP' };
         function senderLabel(d) {
@@ -686,14 +691,19 @@
             const network = s.source === 'network';
             const rx = s.net.receiver;
 
+            // Source buttons: only the active one is lit, green when working, amber while waiting, red when lost
+            const lit = (btn, on, status) => {
+                btn.classList.toggle('is-green', on && status === 'ok');
+                btn.classList.toggle('is-amber', on && status === 'wait');
+                btn.classList.toggle('is-red', on && status === 'bad');
+            };
             const btnLive = $('btn-live');
-            btnLive.classList.toggle('is-green', live);
+            lit(btnLive, live, s.live.status === 'ok' ? 'ok' : 'wait');
             btnLive.disabled = !s.liveSupported;
-            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING' : 'LIVE MODE NEEDS POWERPOINT ON WINDOWS';
-            const btnNet = $('btn-network');
-            btnNet.classList.toggle('is-green', network && rx.healthy);
-            btnNet.classList.toggle('is-red', network && ['lost', 'bad-code', 'unreachable'].includes(rx.status));
-            btnNet.classList.toggle('is-amber', network && !rx.healthy && !['lost', 'bad-code', 'unreachable'].includes(rx.status));
+            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING ON THIS PC' : 'LOCAL NEEDS POWERPOINT ON WINDOWS';
+            const netLost = ['lost', 'bad-code', 'unreachable'].includes(rx.status);
+            lit($('btn-network'), network, rx.healthy ? 'ok' : netLost ? 'bad' : 'wait');
+            lit($('btn-file'), s.source === 'file', s.deckFile ? 'ok' : 'wait');
             $('btn-reload').disabled = !s.deckFile || s.source !== 'file';
             renderNetwork();
 
@@ -717,7 +727,7 @@
                 src.style.color = '#fff';
                 src.style.border = '1px solid ' + (lost ? '#dc2626' : bg);
             } else {
-                src.textContent = live ? 'LIVE' : 'FILE';
+                src.textContent = live ? 'LOCAL' : 'FILE';
                 src.style.background = live ? '#16a34a' : '#222';
                 src.style.color = live ? '#fff' : '#d4d4d4';
                 src.style.border = live ? '1px solid #16a34a' : '1px solid #333';
@@ -732,7 +742,7 @@
             } else if (live) {
                 const ok = s.live.status === 'ok';
                 dot.className = 'tc-ref-dot ' + (ok ? 'dot-green' : 'dot-amber');
-                text.textContent = ok ? 'LIVE: ' + (s.live.name || 'POWERPOINT').toUpperCase() : s.live.message;
+                text.textContent = ok ? 'LOCAL: ' + (s.live.name || 'POWERPOINT').toUpperCase() : s.live.message;
                 text.style.color = ok ? '#22c55e' : '#fbbf24';
             } else {
                 dot.className = 'tc-ref-dot ' + (s.deckFile ? 'dot-blue' : '');
@@ -748,7 +758,7 @@
             $('btn-prev').disabled = follows || !s.count || s.index <= 0;
             $('btn-next').disabled = follows || !s.count || s.index >= s.count - 1;
             $('controls-note').style.display = follows ? '' : 'none';
-            $('controls-note').textContent = network ? 'NETWORK: SLIDES ARE CHANGED ON THE POWERPOINT PC' : 'LIVE: CHANGE SLIDES IN POWERPOINT';
+            $('controls-note').textContent = network ? 'NETWORK: SLIDES ARE CHANGED ON THE POWERPOINT PC' : 'LOCAL: CHANGE SLIDES IN POWERPOINT';
 
             markCurrent();
             renderPreview();

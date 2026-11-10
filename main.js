@@ -142,14 +142,14 @@ const UI_SCALES = { 1: 0.85, 2: 1, 3: 1.15 };
 const isUiScale = (level) => [1, 2, 3].includes(level);
 let uiScaleLevel = isUiScale(savedFile.uiScale) ? savedFile.uiScale : 2;
 
-// The minimum window scales with the interface, so the page always has at least 1000x700 to lay out in
+// The minimum window scales with the interface, so the page always has at least 1100x700 to lay out in
 function applyUiScale(level) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const zoom = UI_SCALES[level];
     mainWindow.webContents.setZoomFactor(zoom);
     const bounds = mainWindow.getBounds();
     const { workArea } = screen.getDisplayMatching(bounds);
-    const minWidth = Math.min(Math.round(1000 * zoom), workArea.width);
+    const minWidth = Math.min(Math.round(1100 * zoom), workArea.width);
     const minHeight = Math.min(Math.round(700 * zoom), workArea.height);
     mainWindow.setMinimumSize(minWidth, minHeight);
     if (mainWindow.isMaximized() || mainWindow.isFullScreen()) return;
@@ -329,8 +329,8 @@ function onLiveUpdate(s) {
             'not-running': 'WAITING FOR POWERPOINT',
             'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
             busy: state.live.status === 'ok' ? 'POWERPOINT IS BUSY' : 'WAITING FOR POWERPOINT',
-            unsupported: s.message || 'LIVE MODE IS NOT AVAILABLE ON THIS SYSTEM',
-            error: s.message || 'LIVE MODE ERROR'
+            unsupported: s.message || 'LOCAL NEEDS POWERPOINT ON WINDOWS',
+            error: s.message || 'POWERPOINT CONNECTION ERROR'
         }[s.state] || 'WAITING FOR POWERPOINT';
         if (s.state === 'busy' && state.live.status === 'ok') return; // end-of-show black screen etc.
         state.live = { status: s.state, message, name: state.live.name };
@@ -792,7 +792,7 @@ ipcMain.handle('open-deck', async (event) => {
         filters: [{ name: 'PowerPoint', extensions: ['pptx'] }]
     });
     if (result.canceled || !result.filePaths.length) return false;
-    if (state.source === 'live') setSource('file');
+    if (state.source !== 'file') setSource('file');
     return loadDeck(result.filePaths[0]);
 });
 

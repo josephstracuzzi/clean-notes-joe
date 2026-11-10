@@ -1,8 +1,8 @@
 # Clean Notes Joe
 Designed by Joseph Stracuzzi
 
-**Your PowerPoint speaker notes, big and clean on a second screen.** Open a deck, or let Clean Notes Joe
-follow PowerPoint live. The notes for the current slide fill a fullscreen display, sized to fit, and
+**Your PowerPoint speaker notes, big and clean on a second screen.** Load a deck, or let Clean Notes Joe
+follow PowerPoint. The notes for the current slide fill a fullscreen display, sized to fit, and
 scroll gently when there's too much to fit. A companion to [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
 
 ---
@@ -24,10 +24,14 @@ npm run start:sender    # Clean Notes Joe Sender
   screen it opens as a 16:9 window in the top-right corner. **DISPLAY** picks a specific screen, and the output
   moves by itself when a display is plugged in or unplugged.
 
-## Two sources
-- **+ OPEN DECK** reads the notes from a `.pptx`. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn
+## Three sources
+The buttons top left pick where the notes come from: **LOCAL · NETWORK · FILE** (the active one is lit: green when
+working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx` and **REFRESH** reads it
+again.
+
+- **FILE** shows the notes of the deck opened with **LOAD**. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn
   (most clickers) or by clicking a slide. Save the deck in PowerPoint and it reloads by itself.
-- **LIVE** follows the slide PowerPoint is on, in the slideshow and in the editor.
+- **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor.
   Notes come straight from PowerPoint, so edits show up before you save.
   - Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View*
     if it would take over the screen you use for notes.
@@ -46,7 +50,7 @@ BACKUP) and **THIS PC'S NAME** (e.g. STAGE-A); it remembers them. When Windows a
 allow it on **Private** networks. The window shows the slide and notes it's sending, this PC's IP address, and
 which notes PCs are connected (**SENDING TO 2**). Leave it open during the show.
 
-**On the notes PC:** click **NETWORK** (next to LIVE), then pick the PowerPoint PC under **PAIRED WITH** (listed with
+**On the notes PC:** click **NETWORK**, then pick the PowerPoint PC under **PAIRED WITH** (listed with
 its role and IP address). If the list stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and
 enter the address shown in the Sender.
 
@@ -81,7 +85,7 @@ Settings and the last deck are remembered in `%APPDATA%\clean-notes-joe`.
 ## Keys
 | Key | Action |
 |---|---|
-| **← / →**, **PgUp / PgDn** | previous / next slide (file mode) |
+| **← / →**, **PgUp / PgDn** | previous / next slide (FILE) |
 | **↑ / ↓** | scroll |
 | **Space** | pause / resume auto-scroll |
 | **Home** | back to the top, restart the start delay |

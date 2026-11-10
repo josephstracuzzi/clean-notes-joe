@@ -114,7 +114,7 @@ class LiveFollower {
         this.lastKey = '';
         if (process.platform === 'win32') this.startWindows();
         else if (process.platform === 'darwin') this.pollMac();
-        else this.emit({ state: 'unsupported', message: 'LIVE MODE NEEDS POWERPOINT ON WINDOWS OR MACOS' });
+        else this.emit({ state: 'unsupported', message: 'NEEDS POWERPOINT ON WINDOWS' });
     }
 
     stop() {
@@ -154,7 +154,7 @@ class LiveFollower {
             if (this.proc !== proc) return;
             this.proc = null;
             if (!this.running) return;
-            if (stderr.trim()) this.emit({ state: 'error', message: 'LIVE HELPER STOPPED: ' + stderr.trim().split('\n').pop() });
+            if (stderr.trim()) this.emit({ state: 'error', message: 'POWERPOINT HELPER STOPPED: ' + stderr.trim().split('\n').pop() });
             // Restart after a pause (PowerShell killed, machine woke from sleep...)
             this.timer = setTimeout(() => { if (this.running) this.startWindows(); }, 2000);
         });
