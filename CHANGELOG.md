@@ -15,6 +15,10 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - The source buttons are now **LOCAL** (was LIVE), **NETWORK** and **FILE**, followed by **LOAD** (was + OPEN DECK) and
   **REFRESH** (was RELOAD). Only the active source is lit: green when working, amber while waiting, red when the network
   connection is lost. FILE switches back to the loaded deck; LOAD opens a new one.
+- Slide number, timer and clock now sit in a **header bar** across the top of the notes screen: a faint band in the
+  text colour with a line under it, slide number on the left, timer in the centre and clock on the right. It is 5% of
+  the screen height by default, adjustable with **HEADER SIZE** (3 to 12%) in the SCREEN panel. The notes always start
+  below it, and it disappears when all three are off.
 - The console's smallest window width is now 1100 px (as in Playback Joe); below 1250 px the logo and header buttons shrink.
 
 ## [0.4.0] - 2026-11-10

@@ -830,7 +830,8 @@
                 sliderRow('START DELAY', 'scrollDelay', 0, 20, 0.5, v => v.toFixed(1) + ' S', s => !s.autoScroll)
             ]],
             ['SCREEN', [
-                badgeRow('SHOW', [['SLIDE #', 'showSlideNumber'], ['TIMER', 'showTimer'], ['CLOCK', 'showClock']]),
+                badgeRow('HEADER BAR', [['SLIDE #', 'showSlideNumber'], ['TIMER', 'showTimer'], ['CLOCK', 'showClock']]),
+                sliderRow('HEADER SIZE', 'headerSize', 3, 12, 0.5, v => v.toFixed(1) + '%', s => !(s.showSlideNumber || s.showTimer || s.showClock)),
                 badgeRow('LAYOUT', [['CENTRE VERTICALLY', 'centerVertical'], ['MIRROR', 'mirror']]),
                 badgeRow('KEYS', [['CTRL+ALT KEYS WORK IN ANY APP', 'globalKeys']])
             ]]

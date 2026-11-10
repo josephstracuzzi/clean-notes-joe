@@ -57,6 +57,7 @@ const DEFAULT_SETTINGS = {
     showSlideNumber: true,
     showClock: false,
     showTimer: true,
+    headerSize: 5,         // header bar (slide number / timer / clock), % of screen height
     emptyText: '— NO NOTES —',
     globalKeys: true
 };
@@ -84,6 +85,7 @@ const SETTING_RULES = {
     showSlideNumber: v => typeof v === 'boolean',
     showClock: v => typeof v === 'boolean',
     showTimer: v => typeof v === 'boolean',
+    headerSize: v => Number.isFinite(v) && v >= 3 && v <= 12,
     emptyText: v => typeof v === 'string' && v.length <= 200,
     globalKeys: v => typeof v === 'boolean'
 };

@@ -77,7 +77,7 @@ it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
 | Text | font, bold, uppercase, alignment, line spacing, paragraph gap, side margin |
 | Colour | presets (white, yellow, green, cyan on black, white on navy, black on white) or any colours |
 | Fit & scroll | **auto-fit** picks the largest size between MIN and MAX that fits. If it still doesn't fit, **auto-scroll** starts after the START DELAY at the chosen SPEED. Drag the bar under the timer to scroll by hand |
-| Screen | slide number, slide timer, clock, centre vertically, **mirror** for teleprompter glass |
+| Screen | **header bar** with slide number, slide timer and clock (HEADER SIZE 3 to 12% of the screen), centre vertically, **mirror** for teleprompter glass |
 
 Sizes are in points at 1080p and scale with the output, so text looks the same on any screen.
 Settings and the last deck are remembered in `%APPDATA%\clean-notes-joe`.

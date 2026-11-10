@@ -18,8 +18,14 @@
     .nj-content.nj-empty { opacity: 0.35; }
     .nj-content.nj-enter { animation: nj-enter 0.18s ease-out; }
     @keyframes nj-enter { from { opacity: 0; } to { opacity: 1; } }
-    .nj-overlay { position: absolute; font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
-        font-weight: bold; letter-spacing: 0.05em; opacity: 0.55; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    /* Header bar: slide number left, timer centre, clock right, each in a fixed slot */
+    .nj-header { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; box-sizing: border-box;
+        font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+        font-weight: bold; letter-spacing: 0.05em; white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1; }
+    .nj-header span { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
+    .nj-header .nj-h-left { text-align: left; }
+    .nj-header .nj-h-mid { text-align: center; }
+    .nj-header .nj-h-right { text-align: right; }
     .nj-more { position: absolute; left: 50%; transform: translateX(-50%); opacity: 0.6; line-height: 1; }
     .nj-progress { position: absolute; left: 0; bottom: 0; height: 100%; }
     .nj-progress-track { position: absolute; left: 0; right: 0; bottom: 0; opacity: 0.25; }
@@ -40,6 +46,13 @@
         return (h ? two(h) + ':' : '') + two(m) + ':' + two(sec);
     }
 
+    // A #rrggbb colour at the given opacity
+    function tint(hex, alpha) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+        const n = m ? parseInt(m[1], 16) : 0xffffff;
+        return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    }
+
     function el(cls, parent) {
         const d = document.createElement('div');
         d.className = cls;
@@ -57,8 +70,14 @@
             Object.assign(this.flip.style, { position: 'absolute', inset: '0' });
             this.viewport = el('nj-viewport', this.flip);
             this.content = el('nj-content', this.viewport);
-            this.slideLabel = el('nj-overlay', this.flip);
-            this.clockLabel = el('nj-overlay', this.flip);
+            this.header = el('nj-header', this.flip);
+            this.slideLabel = document.createElement('span');
+            this.slideLabel.className = 'nj-h-left';
+            this.timerLabel = document.createElement('span');
+            this.timerLabel.className = 'nj-h-mid';
+            this.clockLabel = document.createElement('span');
+            this.clockLabel.className = 'nj-h-right';
+            this.header.append(this.slideLabel, this.timerLabel, this.clockLabel);
             this.more = el('nj-more', this.flip);
             this.more.textContent = '▼';
             this.track = el('nj-progress-track', this.flip);
@@ -116,9 +135,11 @@
             if (!s || !st) return;
             const u = this.unit();
             const W = this.width, H = this.height;
-            const overlays = s.showSlideNumber || s.showClock || s.showTimer;
+            const showHeader = s.showSlideNumber || s.showClock || s.showTimer;
+            const headerH = showHeader ? Math.round(H * s.headerSize / 100) : 0;
             const padX = Math.round(W * s.margin / 100);
-            const padTop = Math.round(H * (overlays ? 0.075 : 0.04));
+            // Notes always start below the header bar, with a gap
+            const padTop = headerH + Math.round(H * (showHeader ? 0.03 : 0.04));
             const padBottom = Math.round(H * 0.05);
             const availH = H - padTop - padBottom;
 
@@ -181,12 +202,17 @@
             if (!keepOffset) this.offset = 0;
             this.offset = Math.min(this.offset, this.max);
 
-            // Overlays
-            const ovSize = Math.round(22 * u) + 'px';
-            const edge = Math.round(H * 0.025) + 'px';
-            Object.assign(this.slideLabel.style, { fontSize: ovSize, left: padX + 'px', top: edge, display: s.showSlideNumber && st.count ? '' : 'none' });
-            Object.assign(this.clockLabel.style, { fontSize: ovSize, right: padX + 'px', top: edge, display: s.showClock || s.showTimer ? '' : 'none' });
-            this.slideLabel.textContent = st.count ? `SLIDE ${st.index + 1} / ${st.count}` : '';
+            // Header bar: a faint band in the text colour with a thin line under it; text scales with the bar
+            const line = Math.max(1, Math.round(2 * u));
+            Object.assign(this.header.style, {
+                display: showHeader ? 'flex' : 'none',
+                height: headerH + 'px',
+                padding: `0 ${padX}px`,
+                fontSize: Math.round(headerH * 0.5) + 'px',
+                background: tint(s.color, 0.08),
+                borderBottom: `${line}px solid ${tint(s.color, 0.3)}`
+            });
+            this.slideLabel.textContent = s.showSlideNumber && st.count ? `SLIDE ${st.index + 1} / ${st.count}` : '';
             Object.assign(this.more.style, { fontSize: Math.round(26 * u) + 'px', bottom: Math.round(H * 0.012) + 'px' });
             const barH = Math.max(2, Math.round(4 * u)) + 'px';
             Object.assign(this.track.style, { height: barH, background: s.color });
@@ -199,14 +225,10 @@
         updateClock() {
             const s = this.settings, st = this.state;
             if (!s || !st) return;
-            const parts = [];
-            if (s.showTimer && st.slideStartedAt) parts.push(fmtTime(Date.now() - st.slideStartedAt));
-            if (s.showClock) {
-                const d = new Date();
-                parts.push(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            }
-            const t = parts.join('   ');
-            if (this.clockLabel.textContent !== t) this.clockLabel.textContent = t;
+            const timer = s.showTimer && st.slideStartedAt ? fmtTime(Date.now() - st.slideStartedAt) : '';
+            const clock = s.showClock ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            if (this.timerLabel.textContent !== timer) this.timerLabel.textContent = timer;
+            if (this.clockLabel.textContent !== clock) this.clockLabel.textContent = clock;
         }
 
         applyOffset() {
