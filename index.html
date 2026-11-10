@@ -43,6 +43,7 @@
         .btn-top.is-blue:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
         .btn-top.is-green { background: #16a34a; color: #fff; border-color: #22c55e; }
         .btn-top.is-red { background: #7f1d1d; color: #fff; border-color: #dc2626; }
+        .btn-top.is-amber { background: #78350f; color: #fff; border-color: var(--amber); }
 
         /* Hand-drawn dropdown list (same as Playback Joe's PATTERN / SIZE lists) */
         #pick-menu { display: none; position: fixed; z-index: 3000; background: #1f1f1f; border: 1px solid #555; border-radius: 4px; padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); max-height: 80vh; overflow-y: auto; }
@@ -107,6 +108,7 @@
         .tc-ref-dot.dot-green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
         .tc-ref-dot.dot-blue { background: var(--blue); box-shadow: 0 0 5px var(--blue); }
         .tc-ref-dot.dot-amber { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+        .tc-ref-dot.dot-red { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
         .timecode-container { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
         .tc-elapsed { color: #fff; }
         .tc-remaining { color: #e5e5e5; cursor: pointer; }
@@ -157,6 +159,22 @@
         .color-pick input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
         .color-pick span { font-family: var(--font-mono); color: #aaa; }
 
+        /* Network panel */
+        .net-section { font-size: 9px; font-weight: bold; color: #666; letter-spacing: 0.8px; font-family: var(--font-mono); margin: 8px 0 2px; }
+        .net-section:first-of-type { margin-top: 0; }
+        .net-status { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; font-family: var(--font-mono); color: #ccc; }
+        .net-status span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .net-value { flex: 1; min-width: 0; font-family: var(--font-mono); color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .net-value.dim { color: #666; }
+        .net-value.err { color: #f87171; white-space: normal; }
+        .net-hint { font-size: 9px; color: #666; line-height: 1.5; margin-top: 2px; }
+        .ctl-input { flex: 1; min-width: 0; background: #1a1a1a; color: #eee; border: 1px solid #333; border-radius: 3px; height: 22px; padding: 0 8px;
+            font-family: var(--font-mono); font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; outline: none; user-select: text; }
+        .ctl-input:focus { border-color: var(--blue); }
+        .ctl-input::placeholder { color: #555; }
+        #pick-menu .pick-item.is-dim { color: #666; }
+        #pick-menu .pick-sep { height: 1px; background: #333; margin: 4px 2px; }
+
         /* Modals (Playback Joe's style) */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 999999; }
         .focus-modal { width: 440px; background: #1a1a1a; border: 2px solid var(--blue); color: #fff; padding: 30px 20px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); }
@@ -200,6 +218,20 @@
         </div>
     </div>
 
+    <!-- Pair by typing an IP address -->
+    <div id="ip-modal-overlay" class="modal-overlay" onclick="hideModal('ip-modal-overlay')">
+        <div class="focus-modal" onclick="event.stopPropagation()">
+            <div style="font-size: 13px; margin-bottom: 12px; color: var(--blue); letter-spacing: 1px;">PAIR BY IP ADDRESS</div>
+            <div style="font-size: 12px; font-weight: normal; color: #aaa; margin-bottom: 14px; line-height: 1.5;">THE IP ADDRESS IS SHOWN IN THE NETWORK PANEL<br>ON THE POWERPOINT PC (THIS PC'S IP)</div>
+            <input class="ctl-input" id="ip-input" placeholder="192.168.1.20" spellcheck="false" style="width: 100%; height: 34px; font-size: 16px; text-align: center; margin-bottom: 8px;">
+            <div id="ip-error" style="font-size: 11px; color: #f87171; min-height: 16px; margin-bottom: 12px;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="modal-btn" style="background: var(--blue); color: #fff; border-color: var(--blue);" onclick="pairByIp()">PAIR</button>
+                <button class="modal-btn" onclick="hideModal('ip-modal-overlay')">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
     <div class="left-pane">
         <div class="playlist-header">
             <div class="header-title-container">
@@ -209,6 +241,7 @@
             <div class="header-right">
                 <div class="header-actions">
                     <button class="btn-top" id="btn-live" onclick="toggleLive()" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING">LIVE</button>
+                    <button class="btn-top" id="btn-network" onclick="toggleNetwork()" title="SHOW THE NOTES ANOTHER CLEAN NOTES JOE PC SENDS">NETWORK</button>
                     <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO RELOADS BY ITSELF WHEN SAVED)">RELOAD</button>
                     <button class="btn-top is-blue" onclick="api.openDeck()">+ OPEN DECK</button>
                 </div>
@@ -286,6 +319,54 @@
             <div class="controls-note" id="controls-note" style="display: none;">LIVE: CHANGE SLIDES IN POWERPOINT</div>
         </div>
 
+        <div class="panel" id="network-panel">
+            <div class="tc-ref-header"><span>NETWORK</span><span id="net-head-status" style="color:#777;"></span></div>
+
+            <div class="net-section">RECEIVE · THIS PC SHOWS NOTES FROM</div>
+            <div class="ctl-row">
+                <span class="ctl-label">PAIRED WITH</span>
+                <button class="cue-select" id="net-pair-btn" onclick="openPairMenu(this)">NOT PAIRED</button>
+            </div>
+            <div class="ctl-row">
+                <span class="ctl-label">STATUS</span>
+                <span class="net-status"><span class="tc-ref-dot" id="net-rx-dot"></span><span id="net-rx-text">OFF</span></span>
+            </div>
+
+            <div class="net-section">SEND · OTHER PCS SHOW NOTES FROM THIS PC</div>
+            <div class="ctl-row">
+                <span class="ctl-label">SEND</span>
+                <div class="ctl-badges">
+                    <button class="badge" id="net-send-btn" onclick="api.setNetwork({ sender: { enabled: !state.net.sender.enabled } })">SEND TO NOTES PCS</button>
+                </div>
+            </div>
+            <div class="ctl-row">
+                <span class="ctl-label">ROLE</span>
+                <div class="ctl-badges">
+                    <button class="badge" id="net-role-main" onclick="api.setNetwork({ sender: { role: 'main' } })">MAIN</button>
+                    <button class="badge" id="net-role-backup" onclick="api.setNetwork({ sender: { role: 'backup' } })">BACKUP</button>
+                </div>
+            </div>
+            <div class="ctl-row">
+                <span class="ctl-label">THIS PC'S NAME</span>
+                <input class="ctl-input" id="net-name" maxlength="40" spellcheck="false">
+            </div>
+            <div class="ctl-row">
+                <span class="ctl-label">THIS PC'S IP</span>
+                <span class="net-value" id="net-ip"></span>
+            </div>
+            <div class="ctl-row">
+                <span class="ctl-label">RECEIVERS</span>
+                <span class="net-value" id="net-clients"></span>
+            </div>
+
+            <div class="net-section">BOTH</div>
+            <div class="ctl-row">
+                <span class="ctl-label">SHOW CODE</span>
+                <input class="ctl-input" id="net-code" maxlength="32" spellcheck="false" placeholder="NONE">
+            </div>
+            <div class="net-hint">OPTIONAL. USE THE SAME CODE ON EVERY PC IN THE SHOW TO KEEP OTHER SHOWS ON A SHARED NETWORK OUT.</div>
+        </div>
+
         <div id="settings-panels"></div>
     </div>
 
@@ -329,8 +410,10 @@
         function openPickMenu(anchor, items, onPick) {
             pickMenu.textContent = '';
             for (const item of items) {
+                if (item.sep) { const s = document.createElement('div'); s.className = 'pick-sep'; pickMenu.appendChild(s); continue; }
                 const b = document.createElement('button');
-                b.className = 'pick-item' + (item.current ? ' is-current' : '');
+                b.className = 'pick-item' + (item.current ? ' is-current' : '') + (item.dim ? ' is-dim' : '');
+                if (item.title) b.title = item.title;
                 b.textContent = item.label;
                 if (item.font) { b.style.fontFamily = item.font; b.style.textTransform = 'none'; b.style.fontSize = '14px'; }
                 b.onclick = (e) => { e.stopPropagation(); pickMenu.style.display = 'none'; onPick(item.value); };
@@ -369,7 +452,11 @@
             const slides = deck.slides || [];
             if (!slides.length) {
                 const live = state && state.source === 'live';
-                list.innerHTML = live
+                const network = state && state.source === 'network';
+                list.innerHTML = network
+                    ? `<div class="empty-playlist"><div class="empty-title">${state.net.receiver.healthy ? 'FOLLOWING ' + state.net.receiver.name.toUpperCase() : state.net.receiver.set ? 'WAITING FOR ' + (state.net.receiver.name || 'THE PAIRED PC').toUpperCase() : 'NOT PAIRED'}</div>
+                       <div class="empty-hint">${state.net.receiver.set ? 'ITS SLIDE LIST SHOWS HERE ONCE IT HAS A SAVED DECK OPEN' : 'CHOOSE A POWERPOINT PC UNDER <span class="empty-key">PAIRED WITH</span><br>IN THE NETWORK PANEL'}</div></div>`
+                    : live
                     ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING POWERPOINT' : 'WAITING FOR POWERPOINT'}</div>
                        <div class="empty-hint">OPEN A SAVED .PPTX IN POWERPOINT<br>TO SEE ITS SLIDE LIST HERE</div></div>`
                     : `<div class="empty-playlist"><div class="empty-title">NO DECK LOADED</div>
@@ -408,7 +495,7 @@
 
                 const preview = document.createElement('div');
                 preview.className = 'notes-preview' + (s.notes ? '' : ' none');
-                preview.textContent = s.notes ? s.notes.replace(/\n+/g, ' · ') : 'No speaker notes on this slide';
+                preview.textContent = s.notes ? s.notes.replace(/[\n\u2028]+/g, ' · ') : 'No speaker notes on this slide';
                 content.append(row, preview);
                 item.append(num, content);
                 list.appendChild(item);
@@ -527,20 +614,130 @@
             if ($('tc-mid').innerHTML !== mid) $('tc-mid').innerHTML = mid;
         }
 
-        // ---------------------------------------------------------------- state
+        // ---------------------------------------------------------------- network
         function toggleLive() {
             api.setSource(state.source === 'live' ? 'file' : 'live');
         }
+        function toggleNetwork() {
+            api.setSource(state.source === 'network' ? 'file' : 'network');
+        }
+
+        const ROLE_LABEL = { main: 'MAIN', backup: 'BACKUP' };
+        function senderLabel(d) {
+            return [d.name || d.address, ROLE_LABEL[d.role], d.address].filter(Boolean).join(' · ');
+        }
+
+        function openPairMenu(anchor) {
+            const rx = state.net.receiver;
+            const items = [];
+            if (state.source !== 'network') items.push({ label: 'TURN ON NETWORK TO LIST PCS', value: 'on', dim: false });
+            for (const d of rx.discovered || []) {
+                items.push({ label: senderLabel(d) + (d.sameCode ? '' : '  (OTHER SHOW CODE)'), value: { id: d.id, name: d.name, role: d.role, address: d.address, port: d.port }, current: rx.id === d.id, dim: !d.sameCode });
+            }
+            if (state.source === 'network' && !(rx.discovered || []).length) items.push({ label: 'NO SENDING PCS FOUND YET', value: null, dim: true });
+            items.push({ sep: true });
+            items.push({ label: 'TYPE IP ADDRESS…', value: 'ip' });
+            if (rx.set) items.push({ label: 'UNPAIR', value: 'unpair' });
+            openPickMenu(anchor, items, v => {
+                if (v === 'on') api.setSource('network');
+                else if (v === 'ip') openIpModal();
+                else if (v === 'unpair') api.pair(null);
+                else if (v) api.pair(v);
+            });
+        }
+
+        function openIpModal() {
+            const input = $('ip-input');
+            const rx = state.net.receiver;
+            input.value = rx.address || '';
+            $('ip-error').textContent = '';
+            showModal('ip-modal-overlay');
+            setTimeout(() => { input.focus(); input.select(); }, 0);
+        }
+        function pairByIp() {
+            const raw = $('ip-input').value.trim();
+            const m = raw.match(/^([A-Za-z0-9.\-]+)(?::(\d{1,5}))?$/);
+            if (!m) { $('ip-error').textContent = 'THAT DOESN\'T LOOK LIKE AN IP ADDRESS'; return; }
+            const target = { address: m[1] };
+            if (m[2]) target.port = Number(m[2]);
+            api.pair(target);
+            hideModal('ip-modal-overlay');
+            if (state.source !== 'network') api.setSource('network');
+        }
+        $('ip-input').addEventListener('keydown', e => { if (e.key === 'Enter') pairByIp(); });
+
+        for (const [id, apply] of [['net-name', v => ({ sender: { name: v } })], ['net-code', v => ({ code: v })]]) {
+            const input = $(id);
+            input.addEventListener('change', () => api.setNetwork(apply(input.value.trim())));
+            input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') input.blur(); });
+        }
+
+        // Receiver status in words, with a dot colour
+        function receiverStatus(rx, on) {
+            if (!on) return rx.set ? ['', 'PAIRED · TURN ON NETWORK TO SHOW ITS NOTES'] : ['', 'OFF'];
+            if (!rx.set) return ['dot-amber', 'NOT PAIRED · CHOOSE A PC ABOVE'];
+            switch (rx.status) {
+                case 'connected':
+                    if (rx.ppt === 'ok') return ['dot-green', 'CONNECTED · FOLLOWING POWERPOINT'];
+                    return ['dot-amber', 'CONNECTED · ' + ({ 'not-running': 'POWERPOINT IS CLOSED', 'no-presentation': 'NO PRESENTATION OPEN', off: 'NOT SENDING', error: 'POWERPOINT ERROR', busy: 'POWERPOINT BUSY' }[rx.ppt] || 'WAITING')];
+                case 'lost': return ['dot-red', 'CONNECTION LOST · SHOWING LAST NOTES'];
+                case 'bad-code': return ['dot-red', 'REFUSED · SHOW CODES DON\'T MATCH'];
+                case 'wrong-sender': return ['dot-amber', 'A DIFFERENT PC HAS THAT ADDRESS · LOOKING'];
+                case 'unreachable': return ['dot-red', 'CAN\'T REACH ' + (rx.address || 'IT') + ' · RETRYING'];
+                case 'connecting': return ['dot-amber', 'CONNECTING…'];
+                default: return ['dot-amber', 'LOOKING FOR ' + (rx.name || 'IT') + ' ON THE NETWORK…'];
+            }
+        }
+
+        function renderNetwork() {
+            const n = state.net;
+            const on = state.source === 'network';
+            const rx = n.receiver;
+            $('net-pair-btn').textContent = rx.set ? senderLabel(rx) : 'NOT PAIRED';
+            const [dot, text] = receiverStatus(rx, on);
+            $('net-rx-dot').className = 'tc-ref-dot ' + dot;
+            $('net-rx-text').textContent = text;
+            $('net-rx-text').title = (rx.discoveryError || '');
+
+            const tx = n.sender;
+            $('net-send-btn').classList.toggle('active-hold', tx.enabled);
+            $('net-role-main').classList.toggle('active-hold', tx.role === 'main');
+            $('net-role-backup').classList.toggle('active-hold', tx.role === 'backup');
+            if (document.activeElement !== $('net-name')) $('net-name').value = tx.name;
+            if (document.activeElement !== $('net-code')) $('net-code').value = n.code;
+            $('net-ip').textContent = (tx.addresses || []).join(', ') || 'NO NETWORK';
+            const clients = $('net-clients');
+            if (!tx.enabled) { clients.textContent = 'SEND IS OFF'; clients.className = 'net-value dim'; }
+            else if (tx.blocked) { clients.textContent = 'PAUSED WHILE NETWORK IS ON HERE'; clients.className = 'net-value dim'; }
+            else if (tx.error) { clients.textContent = tx.error; clients.className = 'net-value err'; }
+            else if (!(tx.clients || []).length) { clients.textContent = 'NONE CONNECTED'; clients.className = 'net-value dim'; }
+            else { clients.textContent = tx.clients.length + ': ' + tx.clients.map(c => c.name).join(', '); clients.className = 'net-value'; clients.style.color = '#22c55e'; }
+            if (clients.className !== 'net-value') clients.style.color = '';
+
+            const head = [];
+            if (on) head.push('RECEIVING');
+            if (tx.running) head.push('SENDING AS ' + ROLE_LABEL[tx.role]);
+            $('net-head-status').textContent = head.join(' · ');
+        }
+
+        // ---------------------------------------------------------------- state
 
         function renderState() {
             const s = state;
             const live = s.source === 'live';
+            const network = s.source === 'network';
+            const rx = s.net.receiver;
 
             const btnLive = $('btn-live');
             btnLive.classList.toggle('is-green', live);
             btnLive.disabled = !s.liveSupported;
-            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING' : 'LIVE MODE NEEDS POWERPOINT ON WINDOWS OR MACOS';
-            $('btn-reload').disabled = !s.deckFile || live;
+            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING' : 'LIVE MODE NEEDS POWERPOINT ON WINDOWS';
+            const btnNet = $('btn-network');
+            btnNet.classList.toggle('is-green', network && rx.healthy);
+            btnNet.classList.toggle('is-red', network && ['lost', 'bad-code', 'unreachable'].includes(rx.status));
+            btnNet.classList.toggle('is-amber', network && !rx.healthy && !['lost', 'bad-code', 'unreachable'].includes(rx.status));
+            $('btn-reload').disabled = !s.deckFile || s.source !== 'file';
+            renderNetwork();
 
             $('btn-output').classList.toggle('is-green', s.output.open);
             $('btn-fullscreen').classList.toggle('is-blue', s.output.open && s.output.fullscreen);
@@ -554,13 +751,27 @@
             $('slide-counter').textContent = s.count ? `${num} / ${two(s.count)}` : '-- / --';
 
             const src = $('source-badge');
-            src.textContent = live ? 'LIVE' : 'FILE';
-            src.style.background = live ? '#16a34a' : '#222';
-            src.style.color = live ? '#fff' : '#d4d4d4';
-            src.style.border = live ? '1px solid #16a34a' : '1px solid #333';
+            if (network) {
+                const lost = ['lost', 'bad-code', 'unreachable'].includes(rx.status);
+                src.textContent = lost ? 'CONNECTION LOST' : 'NET' + (rx.role ? ' ' + ROLE_LABEL[rx.role] : '');
+                const bg = lost ? '#7f1d1d' : rx.healthy ? '#16a34a' : '#78350f';
+                src.style.background = bg;
+                src.style.color = '#fff';
+                src.style.border = '1px solid ' + (lost ? '#dc2626' : bg);
+            } else {
+                src.textContent = live ? 'LIVE' : 'FILE';
+                src.style.background = live ? '#16a34a' : '#222';
+                src.style.color = live ? '#fff' : '#d4d4d4';
+                src.style.border = live ? '1px solid #16a34a' : '1px solid #333';
+            }
 
             const dot = $('source-dot'), text = $('source-text');
-            if (live) {
+            if (network) {
+                const [d, t] = receiverStatus(rx, true);
+                dot.className = 'tc-ref-dot ' + d;
+                text.textContent = rx.healthy ? 'NET: ' + (rx.name || '').toUpperCase() + (rx.role ? ' (' + ROLE_LABEL[rx.role] + ')' : '') : t;
+                text.style.color = d === 'dot-green' ? '#22c55e' : d === 'dot-red' ? '#f87171' : '#fbbf24';
+            } else if (live) {
                 const ok = s.live.status === 'ok';
                 dot.className = 'tc-ref-dot ' + (ok ? 'dot-green' : 'dot-amber');
                 text.textContent = ok ? 'LIVE: ' + (s.live.name || 'POWERPOINT').toUpperCase() : s.live.message;
@@ -575,9 +786,11 @@
             pause.textContent = s.paused ? '▶ RESUME' : '❚❚ PAUSE';
             pause.classList.toggle('is-paused', s.paused);
 
-            $('btn-prev').disabled = live || !s.count || s.index <= 0;
-            $('btn-next').disabled = live || !s.count || s.index >= s.count - 1;
-            $('controls-note').style.display = live ? '' : 'none';
+            const follows = live || network;
+            $('btn-prev').disabled = follows || !s.count || s.index <= 0;
+            $('btn-next').disabled = follows || !s.count || s.index >= s.count - 1;
+            $('controls-note').style.display = follows ? '' : 'none';
+            $('controls-note').textContent = network ? 'NETWORK: SLIDES ARE CHANGED ON THE POWERPOINT PC' : 'LIVE: CHANGE SLIDES IN POWERPOINT';
 
             markCurrent();
             renderPreview();
@@ -592,7 +805,8 @@
         setInterval(updateTimer, 250);
 
         api.onState(s => {
-            const sourceChanged = !state || state.source !== s.source || state.live.status !== s.live.status;
+            const sourceChanged = !state || state.source !== s.source || state.live.status !== s.live.status
+                || state.net.receiver.status !== s.net.receiver.status || state.net.receiver.healthy !== s.net.receiver.healthy || state.net.receiver.name !== s.net.receiver.name;
             state = s;
             if (sourceChanged && !(deck.slides || []).length) renderDeck();
             renderState();
@@ -771,7 +985,7 @@
         const KEYS = { ArrowRight: 'next', PageDown: 'next', ArrowLeft: 'prev', PageUp: 'prev', ArrowDown: 'scroll-down', ArrowUp: 'scroll-up',
             ' ': 'toggle-pause', Home: 'top', End: 'last', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller' };
         window.addEventListener('keydown', e => {
-            if (e.target.closest('input[type="color"]')) return;
+            if (e.target.closest('input[type="color"], .ctl-input')) return;
             if (e.key === 'Escape') { pickMenu.style.display = 'none'; hideModal('credits-modal-overlay'); hideModal('console-modal'); return; }
             const action = KEYS[e.key];
             if (!action || e.ctrlKey || e.metaKey || e.altKey) return;

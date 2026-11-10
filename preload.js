@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('notesAPI', {
     openDeck: () => ipcRenderer.invoke('open-deck'),
     reloadDeck: () => ipcRenderer.send('reload-deck'),
     setSource: (source) => ipcRenderer.send('set-source', source),
+    setNetwork: (changes) => ipcRenderer.send('set-network', changes),
+    pair: (target) => ipcRenderer.send('pair', target),
     goTo: (index) => ipcRenderer.send('go-to', index),
     action: (name) => ipcRenderer.send('action', name),
     setPaused: (paused) => ipcRenderer.send('set-paused', paused),

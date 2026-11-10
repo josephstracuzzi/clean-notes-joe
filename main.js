@@ -10,6 +10,9 @@ const path = require('path');
 const fs = require('fs');
 const { readPresentation } = require('./pptx');
 const { LiveFollower } = require('./live');
+const { NetSender, NetReceiver, deckHash, localAddresses, DEFAULT_PORT, DISCOVERY_PORT } = require('./network');
+const os = require('os');
+const crypto = require('crypto');
 
 // Single instance: a second launch focuses the running console instead
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
@@ -119,6 +122,7 @@ function saveSettingsNow() {
             display: settings,
             lastFile: deck.file,
             source: state.source,
+            network: netConfig,
             outputOpen: !!outputWindow && !outputWindow.isDestroyed(),
             outputDisplayId: outputDisplayId
         };
@@ -165,8 +169,9 @@ function applyUiScale(level) {
 // Show state
 // ---------------------------------------------------------------------------
 let deck = { file: null, name: '', slides: [], error: null };
+const SOURCES = ['file', 'live', 'network'];
 const state = {
-    source: savedFile.source === 'live' && LiveFollower.isSupported() ? 'live' : 'file',
+    source: savedFile.source === 'network' ? 'network' : savedFile.source === 'live' && LiveFollower.isSupported() ? 'live' : 'file',
     index: 0,
     count: 0,
     title: '',
@@ -209,10 +214,11 @@ function displayList() {
 }
 
 function publicState() {
-    return { ...state, output: outputInfo(), displays: displayList(), outputDisplayId, deckName: deck.name, deckFile: deck.file };
+    return { ...state, output: outputInfo(), displays: displayList(), outputDisplayId, deckName: deck.name, deckFile: deck.file, net: netSnapshot() };
 }
 
 function broadcastState() {
+    pushToSender();
     const s = publicState();
     send(mainWindow, 'state', s);
     send(outputWindow, 'state', s);
@@ -225,6 +231,7 @@ function broadcastSettings() {
 
 function sendDeck() {
     send(mainWindow, 'deck', deck);
+    if (sender) sender.setDeck({ name: deck.name, slides: deck.slides, hash: deckHash(deck.slides) });
 }
 
 function notifyOperator(message) {
@@ -234,11 +241,11 @@ function notifyOperator(message) {
 // Works out the slide being shown from the deck, the index and (in live mode) PowerPoint
 function refreshCurrent(forceNewSlide = false) {
     const slide = deck.slides[state.index];
-    const count = state.source === 'live' && state.live.status === 'ok' ? state.count : deck.slides.length;
-    state.count = count;
+    const followsAnother = (state.source === 'live' && state.live.status === 'ok') || state.source === 'network';
+    state.count = followsAnother ? state.count : deck.slides.length;
     state.notes = liveNotes !== null ? liveNotes : (slide ? slide.notes : '');
     state.title = liveTitle || (slide ? slide.title : '');
-    const key = `${state.source}|${deck.file || state.live.name}|${state.index}`;
+    const key = `${state.source}|${deck.file || deck.name || state.live.name}|${state.index}`;
     if (key !== state.key || forceNewSlide) {
         state.key = key + (forceNewSlide ? '|' + Date.now() : '');
         state.slideStartedAt = Date.now();
@@ -268,6 +275,7 @@ function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
     try {
         const { slides } = readPresentation(file);
         deck = { file, name: path.basename(file), slides, error: null };
+        netConfig.lastLocalFile = file;
         if (!keepIndex) state.index = 0;
         state.index = Math.max(0, Math.min(state.index, slides.length - 1));
         watchDeck(file);
@@ -285,7 +293,7 @@ function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
 }
 
 function goTo(index) {
-    if (state.source === 'live') return; // PowerPoint drives the slide in live mode
+    if (state.source !== 'file') return; // PowerPoint drives the slide in live and network mode
     if (!deck.slides.length) return;
     const i = Math.max(0, Math.min(index, deck.slides.length - 1));
     if (i === state.index) return;
@@ -334,7 +342,9 @@ function onLiveUpdate(s) {
 }
 
 function setSource(source) {
+    if (!SOURCES.includes(source)) return;
     if (source === 'live' && !LiveFollower.isSupported()) return;
+    const leavingNetwork = state.source === 'network' && source !== 'network';
     state.source = source;
     liveNotes = null;
     liveTitle = null;
@@ -344,10 +354,164 @@ function setSource(source) {
     } else {
         live.stop();
         state.live = { status: 'off', message: '', name: '' };
+    }
+    if (source === 'network') {
+        startReceiver();
+        applyReceiver();
+    } else {
+        stopReceiver();
+        if (leavingNetwork) {
+            // The slide list came from the other PC; go back to the last deck opened here
+            deck = { file: null, name: '', slides: [], error: null };
+            if (netConfig.lastLocalFile && fs.existsSync(netConfig.lastLocalFile)) loadDeck(netConfig.lastLocalFile, { quiet: true });
+            else sendDeck();
+        }
         state.index = Math.max(0, Math.min(state.index, deck.slides.length - 1));
     }
+    updateSender();
     refreshCurrent();
     saveSettingsSoon();
+}
+
+// ---------------------------------------------------------------------------
+// Network: send what this PC shows to paired notes PCs, or show what a paired PC sends
+// ---------------------------------------------------------------------------
+const NET_ROLES = ['main', 'backup'];
+const savedNet = (savedFile.network && typeof savedFile.network === 'object') ? savedFile.network : {};
+const netConfig = {
+    machineId: typeof savedNet.machineId === 'string' && savedNet.machineId ? savedNet.machineId : crypto.randomUUID(),
+    code: typeof savedNet.code === 'string' ? savedNet.code.slice(0, 32) : '',
+    sender: {
+        enabled: !!(savedNet.sender && savedNet.sender.enabled),
+        role: savedNet.sender && NET_ROLES.includes(savedNet.sender.role) ? savedNet.sender.role : 'main',
+        name: savedNet.sender && typeof savedNet.sender.name === 'string' && savedNet.sender.name ? savedNet.sender.name.slice(0, 40) : os.hostname().toUpperCase().slice(0, 40)
+    },
+    target: cleanTarget(savedNet.target),
+    lastLocalFile: typeof savedNet.lastLocalFile === 'string' ? savedNet.lastLocalFile : null
+};
+// Test hooks: run two copies on one PC with different ports
+const NET_PORT = Number(process.env.CNJ_PORT) || DEFAULT_PORT;
+const NET_DISCOVERY = Number(process.env.CNJ_DISCOVERY_PORT) || DISCOVERY_PORT;
+
+let sender = null;
+let receiver = null;
+let receiverDeckKey = '';
+
+function cleanTarget(t) {
+    if (!t || typeof t !== 'object') return null;
+    const out = {};
+    if (typeof t.id === 'string' && /^[\w-]{1,64}$/.test(t.id)) out.id = t.id;
+    if (typeof t.name === 'string') out.name = t.name.slice(0, 100);
+    if (NET_ROLES.includes(t.role)) out.role = t.role;
+    if (typeof t.address === 'string' && /^[A-Za-z0-9.\-:]{1,253}$/.test(t.address)) out.address = t.address;
+    if (Number.isInteger(t.port) && t.port > 0 && t.port < 65536) out.port = t.port;
+    return out.id || out.address ? out : null;
+}
+
+function netSnapshot() {
+    const s = sender ? sender.snapshot() : { port: NET_PORT, error: '', addresses: [], clients: [] };
+    if (!sender) s.addresses = localAddresses().map(a => a.address);
+    return {
+        code: netConfig.code,
+        sender: { ...netConfig.sender, running: !!sender, ...s, blocked: state.source === 'network' },
+        receiver: receiver ? receiver.snapshot() : { set: !!netConfig.target, name: netConfig.target ? netConfig.target.name || netConfig.target.address || '' : '', role: netConfig.target ? netConfig.target.role || '' : '', address: netConfig.target ? netConfig.target.address || '' : '', status: 'off', discovered: [] }
+    };
+}
+
+// What this PC is showing, for its paired notes PCs. Not while it is itself showing another PC's notes.
+function pushToSender() {
+    if (!sender) return;
+    const status = state.source === 'live' ? state.live.status : (deck.slides.length ? 'ok' : 'no-presentation');
+    sender.setLive({ status, name: deck.name || state.live.name, index: state.index, count: state.count, title: state.title, notes: state.notes });
+}
+
+function updateSender() {
+    const want = netConfig.sender.enabled && state.source !== 'network';
+    if (want && !sender) {
+        sender = new NetSender({ id: netConfig.machineId, name: netConfig.sender.name, role: netConfig.sender.role, code: netConfig.code, port: NET_PORT, discoveryPort: NET_DISCOVERY });
+        sender.on('change', broadcastState);
+        sender.start();
+        sendDeck();
+        pushToSender();
+    } else if (!want && sender) {
+        sender.stop();
+        sender = null;
+    } else if (sender) {
+        sender.configure({ name: netConfig.sender.name, role: netConfig.sender.role, code: netConfig.code });
+    }
+}
+
+function startReceiver() {
+    if (receiver) return;
+    receiver = new NetReceiver({ id: netConfig.machineId, name: os.hostname().toUpperCase().slice(0, 40), code: netConfig.code, target: netConfig.target, discoveryPort: NET_DISCOVERY });
+    receiver.on('change', applyReceiver);
+    receiver.on('target', t => { netConfig.target = cleanTarget(t); saveSettingsSoon(); });
+    let lastStatus = null;
+    receiver.on('change', () => {
+        const st = receiver && receiver.status;
+        if (st === lastStatus) return;
+        const who = receiver.snapshot().name || 'THE PAIRED PC';
+        if (st === 'lost') notifyOperator(`CONNECTION TO ${who.toUpperCase()} LOST. SHOWING THE LAST NOTES AND RECONNECTING.`);
+        else if (st === 'connected' && lastStatus === 'lost') notifyOperator(`RECONNECTED TO ${who.toUpperCase()}.`);
+        else if (st === 'bad-code') notifyOperator(`${who.toUpperCase()} REFUSED THE CONNECTION: THE SHOW CODES DON'T MATCH.`);
+        lastStatus = st;
+    });
+    receiverDeckKey = '';
+    receiver.start();
+}
+
+function stopReceiver() {
+    if (!receiver) return;
+    receiver.stop();
+    receiver = null;
+}
+
+// Show what the paired PC sends
+function applyReceiver() {
+    if (state.source !== 'network' || !receiver) { broadcastState(); return; }
+    const d = receiver.deck;
+    const key = d ? d.name + '|' + d.hash : '';
+    if (key !== receiverDeckKey) {
+        receiverDeckKey = key;
+        deck = { file: null, name: d ? d.name : '', slides: d ? d.slides : [], error: null };
+        watchDeck(null);
+        sendDeck();
+    }
+    const l = receiver.live;
+    if (l) {
+        state.index = l.index;
+        state.count = l.count;
+        liveNotes = l.notes;
+        liveTitle = l.title || null;
+    } else {
+        state.index = 0;
+        state.count = 0;
+        liveNotes = null;
+        liveTitle = null;
+    }
+    refreshCurrent();
+}
+
+function setNetwork(changes) {
+    if (!changes || typeof changes !== 'object') return;
+    if (typeof changes.code === 'string') netConfig.code = changes.code.replace(/[^\w-]/g, '').slice(0, 32);
+    const s = changes.sender;
+    if (s && typeof s === 'object') {
+        if (typeof s.enabled === 'boolean') netConfig.sender.enabled = s.enabled;
+        if (NET_ROLES.includes(s.role)) netConfig.sender.role = s.role;
+        if (typeof s.name === 'string') netConfig.sender.name = s.name.replace(/[^\w .\-]/g, '').trim().slice(0, 40).toUpperCase() || os.hostname().toUpperCase().slice(0, 40);
+    }
+    if (receiver) receiver.setCode(netConfig.code);
+    updateSender();
+    saveSettingsSoon();
+    broadcastState();
+}
+
+function pairWith(target) {
+    netConfig.target = cleanTarget(target);
+    if (receiver) receiver.setTarget(netConfig.target);
+    saveSettingsSoon();
+    broadcastState();
 }
 
 // ---------------------------------------------------------------------------
@@ -604,12 +768,37 @@ function createWindow() {
 
     // Reopen the last deck (a file named on the command line wins)
     const argFile = process.argv.slice(app.isPackaged ? 1 : 2).find(a => /\.pptx$/i.test(a) && fs.existsSync(a));
-    const startFile = argFile || (savedFile.lastFile && fs.existsSync(savedFile.lastFile) ? savedFile.lastFile : null);
+    const firstLaunch = !fs.existsSync(settingsPath);
+    const startFile = argFile
+        || (savedFile.lastFile && fs.existsSync(savedFile.lastFile) ? savedFile.lastFile : null)
+        || (firstLaunch ? starterDeck() : null);
     mainWindow.webContents.once('did-finish-load', () => {
         if (startFile) loadDeck(path.resolve(startFile), { quiet: !argFile });
-        if (state.source === 'live') setSource('live');
+        if (state.source !== 'file') setSource(state.source);
+        else updateSender();
         registerGlobalKeys();
     });
+}
+
+// The bundled test deck, opened on a clean install. Packaged builds ship it as an extraResource; the
+// portable .exe unpacks to a new temp folder on every launch, so it is copied to userData first and
+// opened from there (as Playback Joe does with its starter clips).
+const STARTER_DECK = 'Clean Notes Joe Test Deck.pptx';
+function starterDeck() {
+    const bundled = app.isPackaged
+        ? path.join(process.resourcesPath, 'test_decks', STARTER_DECK)
+        : path.join(__dirname, 'test_decks', STARTER_DECK);
+    if (!fs.existsSync(bundled)) return null;
+    if (!app.isPackaged) return bundled;
+    try {
+        const stable = path.join(app.getPath('userData'), 'test_decks', STARTER_DECK);
+        fs.mkdirSync(path.dirname(stable), { recursive: true });
+        if (!fs.existsSync(stable) || fs.statSync(stable).size !== fs.statSync(bundled).size) fs.copyFileSync(bundled, stable);
+        return stable;
+    } catch (err) {
+        console.error('Failed to copy the test deck:', err);
+        return bundled;
+    }
 }
 
 if (gotSingleInstanceLock) app.whenReady().then(createWindow);
@@ -617,6 +806,8 @@ if (gotSingleInstanceLock) app.whenReady().then(createWindow);
 app.on('will-quit', () => {
     globalShortcut.unregisterAll();
     live.stop();
+    if (sender) sender.stop();
+    if (receiver) receiver.stop();
     if (saveTimer) { clearTimeout(saveTimer); saveSettingsNow(); }
 });
 
@@ -662,7 +853,15 @@ ipcMain.on('reload-deck', (event) => {
 });
 
 ipcMain.on('set-source', (event, source) => {
-    if (fromOperator(event) && (source === 'file' || source === 'live')) setSource(source);
+    if (fromOperator(event) && SOURCES.includes(source)) setSource(source);
+});
+
+ipcMain.on('set-network', (event, changes) => {
+    if (fromOperator(event)) setNetwork(changes);
+});
+
+ipcMain.on('pair', (event, target) => {
+    if (fromOperator(event)) pairWith(target);
 });
 
 ipcMain.on('go-to', (event, index) => {
