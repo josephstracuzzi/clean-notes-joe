@@ -11,7 +11,8 @@ scroll gently when there's too much to fit. A companion to [Playback Joe](https:
 
 ```
 npm install
-npm start
+npm start               # Clean Notes Joe
+npm run start:sender    # Clean Notes Joe Sender
 ```
 
 `npm start -- talk.pptx` opens a deck straight away. Otherwise the last deck comes back.
@@ -32,33 +33,33 @@ npm start
     if it would take over the screen you use for notes.
 
 ## Network: PowerPoint on one PC, notes on another
-Any copy of Clean Notes Joe can **send** what it's showing, and any other copy on the same network can
-**receive** it. Each notes PC is paired with one PowerPoint PC. With main and backup machines, pair the main notes PC
-with the main PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no automatic switching.
+Two apps, built from this project with the same version number:
+- **Clean Notes Joe** on each notes PC (this app).
+- **Clean Notes Joe Sender** on each PowerPoint PC: a small window that follows PowerPoint and sends the current
+  slide and notes. It starts sending as soon as it opens; there's nothing to switch on.
 
-**On the PowerPoint PC** (NETWORK panel, SEND section):
-1. Turn on **LIVE** so it follows PowerPoint (or open the deck with + OPEN DECK).
-2. Set **ROLE** to MAIN or BACKUP and give the PC a name you'll recognise (e.g. STAGE-A).
-3. Click **SEND TO NOTES PCS**. The first time, Windows asks to allow Clean Notes Joe on the network.
-   Allow it on **Private** networks.
+Each notes PC is paired with one PowerPoint PC. With main and backup machines, pair the main notes PC with the main
+PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no automatic switching.
 
-**On the notes PC:**
-1. Click **NETWORK** (next to LIVE).
-2. Under **PAIRED WITH**, pick the PowerPoint PC from the list (shown with its role and IP address). If the list
-   stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and enter the address shown under
-   THIS PC'S IP on the PowerPoint PC.
+**On the PowerPoint PC:** open **Clean Notes Joe Sender** next to PowerPoint. The first time, set **ROLE** (MAIN or
+BACKUP) and **THIS PC'S NAME** (e.g. STAGE-A); it remembers them. When Windows asks to allow it on the network,
+allow it on **Private** networks. The window shows the slide and notes it's sending, this PC's IP address, and
+which notes PCs are connected (**SENDING TO 2**). Leave it open during the show.
 
-Slide changes arrive almost instantly. The pairing is remembered by the PC's identity, not its IP address, so it
-still finds the PowerPoint PC if the network gives it a new address. If the connection drops (cable pulled, PC
-restarted), the notes screen keeps the last notes, the console shows **CONNECTION LOST**, and it reconnects by
-itself. The output never shows network status, so the presenter only ever sees notes.
+**On the notes PC:** click **NETWORK** (next to LIVE), then pick the PowerPoint PC under **PAIRED WITH** (listed with
+its role and IP address). If the list stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and
+enter the address shown in the Sender.
 
-**SHOW CODE** (optional): enter the same code on every PC in the show. Machines without the code are refused
-and are marked in the PAIRED WITH list. This is useful on shared or DHCP networks where another show might be running
-Clean Notes Joe. Leave it blank on a private show network.
+Slide changes arrive almost instantly, and notes come straight from PowerPoint, so edits show before you save. The
+pairing is remembered by the PC's identity, not its IP address, so a new DHCP address doesn't break it. If the
+connection drops (cable pulled, PC restarted), the notes screen keeps the last notes, the console shows
+**CONNECTION LOST**, and it reconnects by itself. The output never shows network status.
 
-The connection is one way: a notes PC can't change slides or control the PowerPoint PC.
-It uses TCP port 47820 and UDP port 47821 on the local network.
+**SHOW CODE** (optional): enter the same code in the Sender and on the notes PCs. Machines without it are refused
+and are marked in the PAIRED WITH list. This is useful on shared or DHCP networks; leave it blank on a private
+show network.
+
+One way only: a notes PC can't change slides or control the PowerPoint PC. Uses TCP port 47820 and UDP port 47821.
 
 ## Test deck
 `test_decks/Clean Notes Joe Test Deck.pptx` opens on the first launch. Its 10 slides cover very short notes,
@@ -96,13 +97,13 @@ To release:
 1. Add a `## [x.y.z] - date` section at the top of `CHANGELOG.md` describing the changes, and commit it.
 2. Run `npm version patch` (fixes), `npm version minor` (new features) or `npm version major`. This checks the
    changelog has a section for the new version, bumps `package.json`, commits and creates the `vx.y.z` tag.
-3. `npm run build`, then `git push --follow-tags` and attach `dist/Clean Notes Joe x.y.z Portable.exe` to a GitHub
-   release for the tag.
+3. `npm run build`, then `git push --follow-tags` and attach both `.exe` files from `dist/` to a GitHub release
+   for the tag.
 
 ## Build
 Windows 10 / 11 (64-bit) for now:
 ```
-npm run build         # dist/Clean Notes Joe <version> Portable.exe
+npm run build         # dist/Clean Notes Joe <version> Portable.exe and dist/Clean Notes Joe Sender <version> Portable.exe
 ```
 The app is portable (nothing to install) and not code-signed, so on first launch Windows SmartScreen says
 "Windows protected your PC". Click **More info → Run anyway**.
@@ -117,6 +118,7 @@ The app is portable (nothing to install) and not code-signed, so on first launch
 | `notes-view.js` | the notes renderer, shared by the output and the PGM preview |
 | `pptx.js` | reads slide titles and notes from a `.pptx` (no dependencies) |
 | `network.js` | network sync: senders announce themselves and serve their notes; a receiver follows one paired sender |
+| `sender-main.js`, `sender-preload.js`, `sender.html` | Clean Notes Joe Sender (built with `electron-builder.sender.json`) |
 | `live.js` | follows PowerPoint through a hidden Windows PowerShell process (COM). Also has an untested macOS path for later |
 | `test/` | `npm test`: the `.pptx` reader, network sync (real sockets) and the changelog check |
 | `test_decks/` | the test deck (bundled with the app) |

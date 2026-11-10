@@ -9,6 +9,16 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.4.0] - 2026-11-10
+
+### Added
+- **Clean Notes Joe Sender**, a separate small app for the PowerPoint PCs. It follows PowerPoint and starts sending
+  as soon as it opens, and shows the slide and notes being sent, ROLE (MAIN / BACKUP), the PC's name, show code,
+  IP address and which notes PCs are connected. Built alongside Clean Notes Joe with the same version number.
+
+### Changed
+- Clean Notes Joe only receives now: the SEND section is gone from its NETWORK panel.
+
 ## [0.3.0] - 2026-11-10
 
 ### Added
