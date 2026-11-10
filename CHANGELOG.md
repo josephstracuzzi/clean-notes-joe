@@ -9,6 +9,22 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [Unreleased]
+
+### Fixed
+- **Finding PowerPoint (Sender and LOCAL)**: when PowerPoint is open but not yet visible to other programs (Office only
+  registers itself after its window has first lost focus), it is now reached another way instead of showing WAITING FOR
+  POWERPOINT. Windows PowerShell is started from its fixed location rather than relying on PATH. The helper lets go of
+  PowerPoint after every check, so closing PowerPoint can't leave it running invisibly.
+- Clearer reasons when PowerPoint can't be read: **CAN'T REACH POWERPOINT** when it's open but one of the two apps runs as
+  administrator, and a message when PowerShell is restricted on the PC (Constrained Language mode). The Sender explains
+  what to do in its notes area.
+
+### Changed
+- The Sender's window fits its content exactly (about 550 × 600), keeping the same look; it can be made bigger but not
+  smaller.
+- Bigger chevrons on the settings panel headers, centred on the header line.
+
 ## [0.5.0] - 2026-11-10
 
 ### Changed

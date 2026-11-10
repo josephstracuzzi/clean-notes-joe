@@ -329,6 +329,7 @@ function onLiveUpdate(s) {
         // Keep showing the last notes; just report what PowerPoint is doing
         const message = {
             'not-running': 'WAITING FOR POWERPOINT',
+            unreachable: "POWERPOINT IS OPEN BUT CAN'T BE REACHED (IS ONE OF THEM RUNNING AS ADMINISTRATOR?)",
             'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
             busy: state.live.status === 'ok' ? 'POWERPOINT IS BUSY' : 'WAITING FOR POWERPOINT',
             unsupported: s.message || 'LOCAL NEEDS POWERPOINT ON WINDOWS',

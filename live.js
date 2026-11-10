@@ -8,20 +8,56 @@
 //            read from the saved file (save in PowerPoint to see note edits).
 // Each report is passed to onUpdate(state):
 //   { state: 'ok', file, name, index, count, title?, notes? }   index is 1-based
-//   { state: 'not-running' | 'no-presentation' | 'busy' | 'unsupported' | 'error', message? }
+//   { state: 'not-running' | 'unreachable' | 'no-presentation' | 'busy' | 'unsupported' | 'error', message? }
+//   unreachable = PowerPoint is running but can't be reached (one of the two runs as administrator)
 // ============================================================================
 
 const { spawn, execFile } = require('child_process');
 
 const WINDOWS_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
+# Company PCs can lock PowerShell into Constrained Language mode, which blocks talking to PowerPoint: say so
+if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+    Write-Output '{"state":"error","message":"POWERSHELL IS RESTRICTED ON THIS PC (CONSTRAINED LANGUAGE MODE), SO POWERPOINT CANNOT BE READ"}'
+    exit
+}
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $last = ''
+$unreachable = $false
+$nextFallback = [DateTime]::MinValue
+
+# Finds the running PowerPoint. Office only registers itself for other programs after its window has
+# lost focus once, so when PowerPoint is running but not registered yet, it is reached through COM
+# activation instead (PowerPoint hands back its running instance). If that produces a hidden, empty
+# PowerPoint, the real one is out of reach (one of the two runs as administrator): close it and say so.
+function Get-PowerPoint {
+    try { $a = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application'); $script:unreachable = $false; return $a } catch {}
+    if (-not (Get-Process -Name POWERPNT -ErrorAction SilentlyContinue)) { $script:unreachable = $false; return $null }
+    # Only an unreachable PowerPoint waits 5 seconds between tries (each try may start and close a hidden PowerPoint)
+    if ($script:unreachable -and [DateTime]::Now -lt $script:nextFallback) { return $null }
+    try {
+        $a = New-Object -ComObject PowerPoint.Application
+        if ($a.Presentations.Count -eq 0 -and $a.Visible -eq 0) {
+            try { $a.Quit() } catch {}
+            $script:unreachable = $true
+            $script:nextFallback = [DateTime]::Now.AddSeconds(5)
+            return $null
+        }
+        $script:unreachable = $false
+        return $a
+    } catch {
+        $script:unreachable = $true
+        $script:nextFallback = [DateTime]::Now.AddSeconds(5)
+        return $null
+    }
+}
+
 while ($true) {
     $out = $null
-    $app = $null
-    try { $app = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application') } catch { $out = '{"state":"not-running"}' }
-    if ($app) {
+    $app = Get-PowerPoint
+    if (-not $app) {
+        if ($unreachable) { $out = '{"state":"unreachable"}' } else { $out = '{"state":"not-running"}' }
+    } else {
         try {
             $pres = $null; $idx = 0; $mode = ''
             if ($app.SlideShowWindows.Count -gt 0) {
@@ -56,6 +92,10 @@ while ($true) {
             $out = '{"state":"busy"}'
         }
     }
+    # Let go of PowerPoint after every look: held references can keep PowerPoint running invisibly after it is closed
+    $app = $null; $pres = $null; $w = $null; $win = $null; $slide = $null; $shp = $null
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
     if ($out -ne $last) { [Console]::Out.WriteLine($out); [Console]::Out.Flush(); $last = $out }
     Start-Sleep -Milliseconds 200
 }
@@ -126,7 +166,11 @@ class LiveFollower {
     startWindows() {
         const encoded = Buffer.from(WINDOWS_SCRIPT, 'utf16le').toString('base64');
         // Windows PowerShell 5.1 (not pwsh): it has Marshal.GetActiveObject for reaching PowerPoint
-        const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded], { windowsHide: true });
+        // Windows PowerShell 5.1 from its fixed location (PATH can be changed or missing it)
+        const root = process.env.SystemRoot || process.env.windir || 'C:\\Windows';
+        const fixed = require('path').join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+        const exe = require('fs').existsSync(fixed) ? fixed : 'powershell.exe';
+        const proc = spawn(exe, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded], { windowsHide: true });
         this.proc = proc;
         let buffer = '';
         proc.stdout.setEncoding('utf8');
@@ -142,7 +186,7 @@ class LiveFollower {
                     if (s.state === 'ok') {
                         this.emit({ state: 'ok', file: String(s.file || ''), name: String(s.name || ''), index: Number(s.index) || 1, count: Number(s.count) || 0, title: String(s.title || '').replace(/\s+/g, ' ').trim(), notes: cleanNotes(s.notes) });
                     } else {
-                        this.emit({ state: s.state });
+                        this.emit(typeof s.message === 'string' ? { state: s.state, message: s.message.slice(0, 300) } : { state: s.state });
                     }
                 } catch (e) { /* partial or non-JSON line */ }
             }

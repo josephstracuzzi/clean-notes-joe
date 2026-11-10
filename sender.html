@@ -18,11 +18,12 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
         .header { display: flex; align-items: flex-start; justify-content: space-between; height: 44px; flex-shrink: 0; gap: 10px; }
-        .header-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .header-title { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .header-logo { height: 50px; width: auto; display: block; margin-top: -10px; }
         .badge-blue { background: var(--blue); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; }
         .badge-sender { background: #222; color: #ddd; border: 1px solid #444; font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: bold; letter-spacing: 1px; white-space: nowrap; }
-        .on-air { font-family: var(--font-mono); font-size: 11px; font-weight: bold; letter-spacing: 0.5px; padding: 6px 10px; border-radius: 3px; white-space: nowrap; line-height: 13px; }
+        .on-air { font-family: var(--font-mono); font-size: 11px; font-weight: bold; letter-spacing: 0.5px; padding: 6px 10px; border-radius: 3px; white-space: nowrap; line-height: 13px;
+            min-width: 112px; text-align: center; box-sizing: border-box; flex-shrink: 0; }
 
         /* PowerPoint monitor (Playback Joe's PGM monitor) */
         .monitor-wrapper { border: 2px solid #333; background: #000; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
@@ -149,7 +150,7 @@
             $('slide-title').textContent = ok ? (p.title || 'SLIDE ' + (p.index + 1)) : '';
             const notes = $('notes');
             if (ok && p.notes) { notes.className = 'notes-preview'; notes.textContent = p.notes.replace(/\u2028/g, '\n'); }
-            else { notes.className = 'notes-preview none'; notes.textContent = ok ? 'NO SPEAKER NOTES ON THIS SLIDE' : 'OPEN YOUR PRESENTATION IN POWERPOINT'; }
+            else { notes.className = 'notes-preview none'; notes.textContent = ok ? 'NO SPEAKER NOTES ON THIS SLIDE' : (p.detail || 'OPEN YOUR PRESENTATION IN POWERPOINT'); }
 
             // Sending
             $('role-main').classList.toggle('active', c.role === 'main');
@@ -172,8 +173,23 @@
             $('send-head').textContent = ROLE[c.role] + (n.port ? ' · PORT ' + n.port : '');
         }
 
+        // Size the window to its content (once the logo has loaded): as small as it can be without changing the look
+        function fitWindow() {
+            const footer = document.querySelector('.footer');
+            const title = document.querySelector('.header-title');
+            footer.style.marginTop = '0';
+            // Full natural width of the logo and badges (not the width they happen to have in the starting window)
+            const width = Math.ceil(title.scrollWidth + 16 + $('on-air').getBoundingClientRect().width + 32);
+            const height = Math.ceil(footer.getBoundingClientRect().bottom + window.scrollY + 16);
+            footer.style.marginTop = '';
+            api.fitWindow(Math.max(width, 460), height);
+        }
+
         api.onState(render);
-        api.getInitial().then(s => { if (s) render(s); });
+        api.getInitial().then(s => {
+            if (s) render(s);
+            if (document.readyState === 'complete') fitWindow(); else window.addEventListener('load', fitWindow);
+        });
     </script>
 </body>
 </html>

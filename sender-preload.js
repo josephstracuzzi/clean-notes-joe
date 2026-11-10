@@ -7,6 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('senderAPI', {
     getInitial: () => ipcRenderer.invoke('get-initial'),
     setConfig: (changes) => ipcRenderer.send('set-config', changes),
+    fitWindow: (width, height) => ipcRenderer.send('fit-window', width, height),
     onState: (callback) => {
         const handler = (event, state) => callback(state);
         ipcRenderer.on('state', handler);

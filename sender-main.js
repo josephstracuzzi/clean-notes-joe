@@ -96,10 +96,19 @@ function clearDeck(name) {
 
 const MESSAGES = {
     'not-running': 'WAITING FOR POWERPOINT',
+    unreachable: "CAN'T REACH POWERPOINT",
     'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
     busy: 'POWERPOINT IS BUSY',
     unsupported: 'NEEDS POWERPOINT ON WINDOWS',
     error: 'POWERPOINT ERROR'
+};
+// What to do about it, shown in the big area under the bar
+const DETAILS = {
+    'not-running': 'OPEN YOUR PRESENTATION IN POWERPOINT',
+    unreachable: "POWERPOINT IS OPEN BUT THIS APP CAN'T REACH IT. THIS HAPPENS WHEN ONE OF THEM RUNS AS ADMINISTRATOR AND THE OTHER DOESN'T: START BOTH NORMALLY (OR BOTH AS ADMINISTRATOR).",
+    'no-presentation': 'OPEN YOUR PRESENTATION IN POWERPOINT',
+    busy: 'CLOSE ANY DIALOG OPEN IN POWERPOINT',
+    unsupported: 'CLEAN NOTES JOE SENDER NEEDS MICROSOFT POWERPOINT ON WINDOWS'
 };
 
 function onPowerPoint(s) {
@@ -120,7 +129,8 @@ function onPowerPoint(s) {
         // End-of-show black screen or a dialog open: keep sending the last slide
         if (s.state === 'busy' && ppt.status === 'ok') return;
         ppt.status = s.state;
-        ppt.message = s.message || MESSAGES[s.state] || 'WAITING FOR POWERPOINT';
+        ppt.message = MESSAGES[s.state] || 'WAITING FOR POWERPOINT';
+        ppt.detail = s.message || DETAILS[s.state] || '';
     }
     push();
 }
@@ -137,6 +147,7 @@ function createFollower() {
     };
     global.fakeGo = (n) => { index = n; emit(); };
     global.fakeQuit = () => onPowerPoint({ state: 'not-running' });
+    global.fakeState = (st) => onPowerPoint(st);
     return { start: () => setTimeout(emit, 300), stop: () => {} };
 }
 
@@ -155,7 +166,8 @@ sender.on('change', () => broadcast());
 function push() {
     sender.setDeck({ name: deck.name, slides: deck.slides, hash: deckHash(deck.slides) });
     sender.setLive({
-        status: ppt.status === 'unsupported' ? 'error' : ppt.status,
+        // The notes PCs know these states; anything else is reported as an error
+        status: ['ok', 'not-running', 'no-presentation', 'busy'].includes(ppt.status) ? ppt.status : (ppt.status === 'unreachable' ? 'not-running' : 'error'),
         name: ppt.name, index: ppt.index, count: ppt.count, title: ppt.title, notes: ppt.notes
     });
     broadcast();
@@ -239,10 +251,10 @@ function createWindow() {
         icon: path.join(__dirname, 'icon.png'),
         autoHideMenuBar: true,
         backgroundColor: '#121212',
-        width: 560,
-        height: 720,
-        minWidth: 480,
-        minHeight: 560,
+        // Started compact, then fitted exactly to the content by the page (fit-window)
+        width: 480,
+        height: 600,
+        useContentSize: true,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -304,6 +316,17 @@ app.on('window-all-closed', () => app.quit());
 const fromWindow = (event) => !!win && !win.isDestroyed() && event.sender === win.webContents;
 
 ipcMain.handle('get-initial', (event) => (fromWindow(event) ? publicState() : null));
+
+ipcMain.on('fit-window', (event, width, height) => {
+    if (!fromWindow(event) || !Number.isFinite(width) || !Number.isFinite(height)) return;
+    const w = Math.round(Math.min(Math.max(width, 400), 1000));
+    const h = Math.round(Math.min(Math.max(height, 400), 1200));
+    win.setContentSize(w, h);
+    // The minimum is the fitted size (setMinimumSize counts the window frame too)
+    const [outerW, outerH] = win.getSize();
+    const [innerW, innerH] = win.getContentSize();
+    win.setMinimumSize(w + outerW - innerW, h + outerH - innerH);
+});
 
 ipcMain.on('set-config', (event, changes) => {
     if (!fromWindow(event) || !changes || typeof changes !== 'object') return;

@@ -144,8 +144,12 @@
         .panel .tc-ref-header { margin-bottom: 6px; cursor: pointer; }
         .panel .tc-ref-header:hover > span:first-child { color: #fff; }
         /* Collapsible panels: click the header; the arrow shows open (▾) or closed (▸) */
-        .panel-arrow { display: inline-block; width: 12px; color: #777; transition: transform 0.15s ease; }
-        .panel.collapsed .panel-arrow { transform: rotate(-90deg); }
+        .panel .tc-ref-header > span:first-child { display: inline-flex; align-items: center; gap: 10px; }
+        /* Chevron drawn with two borders: points down when open, right when closed; centred on the header line */
+        .panel-arrow { width: 8px; height: 8px; border-right: 2px solid #999; border-bottom: 2px solid #999; flex-shrink: 0;
+            transform: translateY(-2px) rotate(45deg); transition: transform 0.15s ease, border-color 0.15s ease; }
+        .panel.collapsed .panel-arrow { transform: translateX(-1px) rotate(-45deg); }
+        .panel .tc-ref-header:hover .panel-arrow { border-color: #fff; }
         .panel.collapsed { padding-bottom: 4px; }
         .panel.collapsed > .tc-ref-header { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
         .panel.collapsed > :not(.tc-ref-header) { display: none; }
@@ -968,14 +972,13 @@
                 const name = title.textContent.trim();
                 const arrow = document.createElement('span');
                 arrow.className = 'panel-arrow';
-                arrow.textContent = '▾';
                 title.prepend(arrow);
                 head.title = 'CLICK TO OPEN OR CLOSE';
                 panel.classList.toggle('collapsed', closed.includes(name));
                 head.addEventListener('click', () => {
                     panel.classList.toggle('collapsed');
                     const now = [...document.querySelectorAll('.right-pane .panel.collapsed > .tc-ref-header > span:first-child')]
-                        .map(t => t.textContent.replace('▾', '').trim());
+                        .map(t => t.textContent.trim());
                     try { localStorage.setItem('cnj-closed-panels', JSON.stringify(now)); } catch (e) { /* not remembered */ }
                 });
             }
