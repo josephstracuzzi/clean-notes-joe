@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+    <title>CLEAN NOTES JOE - OPERATOR</title>
+    <style>
+        /* Look and feel matched to Playback Joe: same greys, one brand blue, green for live, mono readouts */
+        * { box-sizing: border-box; }
+        :root { --blue: #0284c7; --blue-hover: #0369a1; --green: #28a745; --amber: #f59e0b; }
+        :root { --font-mono: "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", "Ubuntu Mono", monospace; }
+        body {
+            background: #121212; color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; display: grid; grid-template-columns: 1fr 480px; height: 100vh;
+            user-select: none; text-transform: uppercase; overflow: hidden;
+        }
+        .left-pane, .right-pane { padding: 10px 16px 16px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-width: 0; }
+        .right-pane { background: #141414; border-left: 1px solid #262626; }
+        .right-pane > div { flex-shrink: 0; }
+        * { scrollbar-width: thin; scrollbar-color: #333 #181818; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #181818; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .right-header, .playlist-header { display: flex; justify-content: space-between; align-items: flex-start; height: 44px; flex-shrink: 0; gap: 12px; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 0; }
+        .header-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .header-title-container { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .header-logo { height: 50px; width: auto; object-fit: contain; cursor: pointer; display: block; margin-top: -10px; }
+        .header-logo:hover { opacity: 0.85; }
+        .version-badge { background: var(--blue); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: bold; letter-spacing: 0.5px; cursor: pointer; }
+        .version-badge:hover { background: var(--blue-hover); }
+        .format-hint { font-size: 10px; color: #8f8f8f; letter-spacing: 0.5px; padding-top: 2px; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+        button { font-weight: bold; cursor: pointer; border: none; border-radius: 4px; font-size: 13px; outline: none; font-family: inherit; }
+        .btn-top { background: #222; color: #ccc; border: 1px solid #444; padding: 6px 10px; font-size: 10px; border-radius: 3px; letter-spacing: 0.5px;
+            text-transform: uppercase; line-height: 13px; white-space: nowrap; transition: all 0.15s ease; }
+        .btn-top:hover { background: #333; color: #fff; border-color: #555; }
+        .btn-top:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+        .btn-top.is-blue { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .btn-top.is-blue:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+        .btn-top.is-green { background: #16a34a; color: #fff; border-color: #22c55e; }
+        .btn-top.is-red { background: #7f1d1d; color: #fff; border-color: #dc2626; }
+
+        /* Hand-drawn dropdown list (same as Playback Joe's PATTERN / SIZE lists) */
+        #pick-menu { display: none; position: fixed; z-index: 3000; background: #1f1f1f; border: 1px solid #555; border-radius: 4px; padding: 4px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); max-height: 80vh; overflow-y: auto; }
+        #pick-menu .pick-item { display: block; width: 100%; background: transparent; color: #ddd; border: none; border-radius: 3px; padding: 7px 14px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: left; white-space: nowrap; cursor: pointer; }
+        #pick-menu .pick-item:hover { background: var(--blue); color: #fff; }
+        #pick-menu .pick-item.is-current { color: #fff; background: #333; }
+        #pick-menu .pick-item.is-current:hover { background: var(--blue); }
+
+        /* Slide list (styled like the cuelist) */
+        .playlist { flex-grow: 1; background: #181818; border: 1px solid #2e2e2e; border-radius: 4px; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 200px; }
+        .playlist-item { background: #222; cursor: pointer; display: flex; align-items: stretch; border-radius: 3px; overflow: hidden; border: 1px solid transparent; flex-shrink: 0; transition: border-color 0.15s ease, background 0.15s ease; }
+        .playlist-item:hover { background: #2c2c2c; }
+        .playlist.is-live .playlist-item { cursor: default; }
+        .playlist-item.live { border-color: var(--green); background: rgba(40, 167, 69, 0.15); }
+        .playlist-item.is-hidden { opacity: 0.55; }
+        .cue-number-box { display: flex; align-items: center; justify-content: center; width: 50px; background: #161616; font-weight: 900; font-size: 20px; color: #777; border-right: 1px solid #333; flex-shrink: 0; font-family: var(--font-mono); }
+        .playlist-item.live .cue-number-box { background: rgba(40, 167, 69, 0.25); color: var(--green); }
+        .cue-content { display: flex; flex-direction: column; gap: 5px; padding: 8px 12px; flex-grow: 1; min-width: 0; }
+        .playlist-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
+        .clip-name { font-size: 12px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 0; }
+        .clip-name.untitled { color: #777; }
+        .cue-meta-info { display: flex; gap: 6px; align-items: center; flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; }
+        .meta-tag { color: #b5b5b5; background: #1c1c1c; border: 1px solid #333; padding: 2px 5px; border-radius: 2px; line-height: 12px; white-space: nowrap; }
+        .meta-tag.tag-warn { color: #fbbf24; border-color: #78350f; background: rgba(245, 158, 11, 0.1); }
+        .meta-tag.tag-dim { color: #777; }
+        .runtime-badge { color: #e5e5e5; font-weight: bold; font-size: 12px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; min-width: 44px; text-align: right; }
+        .notes-preview { text-transform: none; font-size: 12px; color: #9a9a9a; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+        .playlist-item.live .notes-preview { color: #cfcfcf; }
+        .notes-preview.none { color: #555; font-style: italic; }
+
+        .empty-playlist { color: #a3a3a3; text-align: center; margin: auto; padding: 40px 10px; display: flex; flex-direction: column; align-items: center; gap: 12px; font-family: var(--font-mono); }
+        .empty-title { font-size: 22px; font-weight: bold; letter-spacing: 2px; white-space: nowrap; }
+        .empty-hint { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; line-height: 2; }
+        .empty-key { color: #fff; background: var(--blue); padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+        .empty-key.green { background: #16a34a; }
+
+        .shortcut-hint { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px 16px; font-size: 11px; font-weight: bold; color: #a3a3a3; font-family: var(--font-mono); background: #161616; padding: 7px 10px; border: 1px solid #282828; border-radius: 3px; flex-shrink: 0; }
+        .shortcut-hint .shortcut { display: inline-flex; align-items: center; gap: 5px; }
+        .shortcut-hint kbd { font-family: var(--font-mono); font-size: 11px; font-weight: bold; color: #e5e5e5; background: #262626; border: 1px solid #404040; border-bottom-width: 2px; border-radius: 3px; padding: 1px 6px; }
+        .shortcut-hint kbd.kbd-arrow { font-size: 15px; line-height: 13px; padding: 1px 4px; }
+
+        /* PGM monitor */
+        .monitor-wrapper { border: 2px solid #333; background: #000; border-radius: 4px; overflow: hidden; }
+        .monitor-wrapper.program-active { border-color: var(--green); }
+        .monitor-bar { background: #1a1a1a; height: 31px; padding: 0 10px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; border-bottom: 1px solid #333;
+            overflow: hidden; white-space: nowrap; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .monitor-wrapper.program-active .monitor-bar { color: var(--green); }
+        .monitor-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .monitor-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .monitor-badge { font-size: 10px; font-weight: bold; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; font-family: var(--font-mono); }
+        .monitor-box { width: 100%; aspect-ratio: 16 / 9; position: relative; background: #000; overflow: hidden; }
+        .monitor-placeholder { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 30; font-family: var(--font-mono); font-size: 10px; font-weight: bold; letter-spacing: 1px;
+            color: #fbbf24; background: rgba(0,0,0,0.85); border: 1px solid #78350f; border-radius: 3px; padding: 3px 8px; pointer-events: none; white-space: nowrap; }
+
+        /* Info panel (Playback Joe's timecode panel) */
+        .timecode-wrapper { background: #000; border: 1px solid #333; border-radius: 4px; margin-top: 4px; padding: 4px 12px 8px 12px; display: flex; flex-direction: column; }
+        .tc-ref-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; color: #a3a3a3;
+            padding-bottom: 4px; border-bottom: 1px solid #1f1f1f; margin-bottom: 4px; font-family: var(--font-mono); white-space: nowrap; }
+        .tc-ref-badge { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; }
+        .tc-ref-badge span:last-child { overflow: hidden; text-overflow: ellipsis; }
+        .tc-ref-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; flex-shrink: 0; }
+        .tc-ref-dot.dot-green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+        .tc-ref-dot.dot-blue { background: var(--blue); box-shadow: 0 0 5px var(--blue); }
+        .tc-ref-dot.dot-amber { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+        .timecode-container { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+        .tc-elapsed { color: #fff; }
+        .tc-remaining { color: #e5e5e5; cursor: pointer; }
+        .tc-remaining:hover { color: #fff; }
+        .tc-mid { font-size: 11px; color: #777; letter-spacing: 0.5px; text-align: center; line-height: 1.5; }
+        .tc-mid b { color: #ccc; }
+
+        .scrub-slider { width: 100%; margin-top: 6px; accent-color: var(--green); cursor: pointer; height: 6px; }
+        .scrub-slider:disabled { opacity: 0.3; cursor: default; }
+        .transport-bar { display: flex; gap: 6px; margin-top: 6px; }
+        .transport-bar button { padding: 5px 6px; font-size: 12px; letter-spacing: 0.5px; background: #222; color: #ccc; border: 1px solid #444; border-radius: 3px; flex: 1; transition: all 0.15s ease; }
+        .transport-bar button:hover { background: #333; color: #fff; }
+        .transport-bar button.is-paused { background: #78350f; color: #fff; border-color: var(--amber); }
+        .controls { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-take { background: var(--green); color: white; flex: 1; padding: 12px 16px; letter-spacing: 0.5px; }
+        .btn-take:hover { background: #218838; }
+        .btn-prev { background: #222; color: #ddd; border: 1px solid #444; flex: 1; padding: 12px 16px; letter-spacing: 0.5px; }
+        .btn-prev:hover { background: #333; color: #fff; }
+        .controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .controls-note { font-size: 10px; color: #777; font-family: var(--font-mono); text-align: center; margin-top: 6px; letter-spacing: 0.5px; }
+
+        /* Display settings */
+        .panel { background: #000; border: 1px solid #333; border-radius: 4px; padding: 4px 12px 8px 12px; margin-top: 10px; }
+        .panel .tc-ref-header { margin-bottom: 6px; }
+        .panel-reset { background: none; border: none; color: #777; font-size: 10px; font-family: var(--font-mono); padding: 0; letter-spacing: 0.5px; }
+        .panel-reset:hover { color: #fff; }
+        .ctl-row { display: flex; align-items: center; gap: 8px; min-height: 26px; font-size: 10px; color: #888; font-weight: bold; letter-spacing: 0.5px; }
+        .ctl-label { width: 92px; flex-shrink: 0; }
+        .ctl-value { width: 54px; text-align: right; font-family: var(--font-mono); color: #ccc; flex-shrink: 0; }
+        .ctl-badges { display: flex; gap: 3px; flex: 1; min-width: 0; }
+        .badge { background: #1a1a1a; color: #777; border: 1px solid #333; padding: 4px 2px; font-size: 9px; border-radius: 3px; font-weight: bold; text-align: center; flex: 1; min-width: 0; letter-spacing: 0.5px; }
+        .badge:hover { background: #2a2a2a; color: #ddd; }
+        .badge.active-hold { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .badge:disabled { opacity: 0.35; cursor: not-allowed; }
+        .cue-select { flex: 1; min-width: 0; background: #1a1a1a; color: #ccc; border: 1px solid #333; border-radius: 3px; font-size: 10px; font-weight: bold; height: 22px; padding: 0 8px; text-align: left; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cue-select:hover { background: #333; color: #fff; border-color: #555; }
+        /* Thin custom slider, same as Playback Joe's fade faders; --pct is set from JS */
+        .ctl-row input[type="range"] { --pct: 0%; -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 18px; margin: 0; background: transparent; cursor: pointer; outline: none; }
+        .ctl-row input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--blue) 0, var(--blue) var(--pct), #3a3a3a var(--pct), #3a3a3a 100%); }
+        .ctl-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%; border: none; background: var(--blue); }
+        .ctl-row input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
+        .swatches { display: flex; gap: 4px; flex: 1; }
+        .swatch { flex: 1; height: 24px; border-radius: 3px; border: 1px solid #333; font-size: 12px; font-weight: bold; text-transform: none; padding: 0; }
+        .swatch.is-current { outline: 2px solid var(--blue); outline-offset: 1px; }
+        .color-pick { display: flex; align-items: center; gap: 6px; flex: 1; }
+        .color-pick input[type="color"] { -webkit-appearance: none; width: 34px; height: 22px; border: 1px solid #444; border-radius: 3px; padding: 0; background: none; cursor: pointer; }
+        .color-pick input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+        .color-pick input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+        .color-pick span { font-family: var(--font-mono); color: #aaa; }
+
+        /* Modals (Playback Joe's style) */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 999999; }
+        .focus-modal { width: 440px; background: #1a1a1a; border: 2px solid var(--blue); color: #fff; padding: 30px 20px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); }
+        .modal-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 8px 20px; font-size: 11px; border-radius: 3px; text-transform: uppercase; }
+        .modal-btn:hover { background: #333; color: #fff; }
+        #console-log-output { flex: 1; padding: 14px; font-family: var(--font-mono); font-size: 11px; overflow-y: auto; color: #ddd; background: #111; display: flex; flex-direction: column; gap: 6px; user-select: text; cursor: text; text-align: left; }
+        #console-log-output .log-time { color: #666; margin-right: 8px; }
+        #console-log-output .is-error { color: #f87171; }
+    </style>
+</head>
+<body>
+    <div id="pick-menu"></div>
+
+    <!-- About -->
+    <div id="credits-modal-overlay" class="modal-overlay" onclick="hideModal('credits-modal-overlay')">
+        <div class="focus-modal" onclick="event.stopPropagation()">
+            <img src="logo.png" alt="Clean Notes Joe" style="height: 44px; width: auto; object-fit: contain; margin-bottom: 12px;">
+            <div style="font-size: 13px; margin-bottom: 10px; color: var(--blue); letter-spacing: 1px;">ABOUT CLEAN NOTES JOE <span data-app-version></span></div>
+            <div style="font-size: 14px; font-weight: normal; line-height: 1.6; color: #ddd; text-transform: none;">
+                Designed by <strong style="color: #fff;">Joseph Stracuzzi</strong><br>
+                Coded with <strong style="color: #fff;">Claude</strong><br>
+                A companion to <strong style="color: #fff;">Playback Joe</strong>
+            </div>
+            <br>
+            <button class="modal-btn" onclick="hideModal('credits-modal-overlay')">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- Console -->
+    <div id="console-modal" class="modal-overlay" onclick="hideModal('console-modal')">
+        <div style="width: 720px; height: 460px; background: #1a1a1a; border: 1px solid #444; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.9);" onclick="event.stopPropagation()">
+            <div style="background: #222; padding: 12px 16px; font-weight: bold; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
+                <span>CONSOLE</span>
+                <button onclick="hideModal('console-modal')" style="background: none; color: #aaa; font-size: 14px;">✕</button>
+            </div>
+            <div id="console-log-output"><div style="color: #666; font-style: italic;">NOTHING LOGGED YET.</div></div>
+            <div style="background: #181818; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333;">
+                <button class="modal-btn" style="padding: 6px 12px; font-size: 10px;" onclick="clearLogs()">CLEAR LOGS</button>
+                <span style="font-size: 10px; color: #666;">CLEAN NOTES JOE <span data-app-version></span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="left-pane">
+        <div class="playlist-header">
+            <div class="header-title-container">
+                <img src="logo.png" alt="Clean Notes Joe" class="header-logo" onclick="showModal('credits-modal-overlay')" title="About Clean Notes Joe">
+                <span class="version-badge" data-app-version onclick="showModal('credits-modal-overlay')" title="About Clean Notes Joe"></span>
+            </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button class="btn-top" id="btn-live" onclick="toggleLive()" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING">LIVE</button>
+                    <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO RELOADS BY ITSELF WHEN SAVED)">RELOAD</button>
+                    <button class="btn-top is-blue" onclick="api.openDeck()">+ OPEN DECK</button>
+                </div>
+                <div class="format-hint" id="deck-hint">ACCEPTED: PPTX</div>
+            </div>
+        </div>
+
+        <div class="playlist" id="playlist"></div>
+
+        <div class="shortcut-hint">
+            <span class="shortcut"><kbd class="kbd-arrow">←</kbd><kbd class="kbd-arrow">→</kbd> SLIDE</span>
+            <span class="shortcut"><kbd>↑</kbd><kbd>↓</kbd> SCROLL</span>
+            <span class="shortcut"><kbd>SPACE</kbd> PAUSE</span>
+            <span class="shortcut"><kbd>HOME</kbd> TOP</span>
+            <span class="shortcut"><kbd>-</kbd><kbd>+</kbd> SIZE</span>
+            <span class="shortcut" id="global-hint" title="THE SAME KEYS WITH CTRL+ALT WORK WHILE POWERPOINT HAS FOCUS"><kbd>CTRL</kbd><kbd>ALT</kbd> + KEY: ANYWHERE</span>
+        </div>
+    </div>
+
+    <div class="right-pane">
+        <div class="right-header">
+            <div></div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button class="btn-top" id="btn-display" onclick="openDisplayMenu(this)" title="WHICH SCREEN SHOWS THE NOTES">DISPLAY</button>
+                    <button class="btn-top" id="btn-console" onclick="showModal('console-modal'); setConsoleError(false)">CONSOLE</button>
+                    <button class="btn-top" id="btn-output" onclick="api.toggleOutput()">OUTPUT</button>
+                    <button class="btn-top" id="btn-fullscreen" onclick="api.toggleFullscreen()">⛶ &nbsp; FULLSCREEN</button>
+                </div>
+                <div class="format-hint" id="display-hint">&nbsp;</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="monitor-wrapper program-active">
+                <div class="monitor-bar">
+                    <span class="monitor-title" id="pgm-title">PGM</span>
+                    <div class="monitor-badges">
+                        <span class="monitor-badge" id="phase-badge" style="display: none;"></span>
+                        <span class="monitor-badge" id="source-badge"></span>
+                    </div>
+                </div>
+                <div class="monitor-box" id="preview-box">
+                    <span class="monitor-placeholder" id="preview-placeholder" style="display: none;">OUTPUT OFF · PREVIEW ONLY</span>
+                </div>
+            </div>
+
+            <div class="timecode-wrapper">
+                <div class="tc-ref-header">
+                    <span>SLIDE</span>
+                    <div class="tc-ref-badge"><span class="tc-ref-dot" id="source-dot"></span><span id="source-text">SOURCE: FILE</span></div>
+                    <span>SLIDE TIME</span>
+                </div>
+                <div class="timecode-container">
+                    <span class="tc-elapsed" id="slide-counter">-- / --</span>
+                    <div class="tc-mid" id="tc-mid"></div>
+                    <span class="tc-remaining" id="slide-timer" onclick="api.action('reset-timer')" title="CLICK TO RESTART THE SLIDE TIMER">00:00</span>
+                </div>
+            </div>
+
+            <input type="range" id="scroll-slider" class="scrub-slider" min="0" max="1000" value="0" step="1" title="SCROLL POSITION">
+
+            <div class="transport-bar">
+                <button onclick="api.scrollCommand({ type: 'top' })">⤒ TOP</button>
+                <button id="btn-pause" onclick="api.action('toggle-pause')">❚❚ PAUSE</button>
+                <button onclick="api.action('smaller')">− SIZE</button>
+                <button onclick="api.action('bigger')">+ SIZE</button>
+            </div>
+
+            <div class="controls">
+                <button class="btn-prev" id="btn-prev" onclick="api.action('prev')">◀ PREV</button>
+                <button class="btn-take" id="btn-next" onclick="api.action('next')">NEXT ▶</button>
+            </div>
+            <div class="controls-note" id="controls-note" style="display: none;">LIVE: CHANGE SLIDES IN POWERPOINT</div>
+        </div>
+
+        <div id="settings-panels"></div>
+    </div>
+
+    <script src="notes-view.js"></script>
+    <script>
+        const api = window.notesAPI;
+        let state = null;
+        let settings = null;
+        let defaults = null;
+        let deck = { slides: [] };
+        let lastStatus = null;
+
+        const $ = (id) => document.getElementById(id);
+        const two = (n) => String(n).padStart(2, '0');
+
+        // Buttons give focus back so Space / arrows always reach the shortcuts
+        document.addEventListener('click', e => { const b = e.target.closest('button'); if (b) b.blur(); });
+
+        // ---------------------------------------------------------------- modals & console
+        function showModal(id) { $(id).style.display = 'flex'; }
+        function hideModal(id) { $(id).style.display = 'none'; }
+        function setConsoleError(on) { $('btn-console').classList.toggle('is-red', on); }
+        function log(message, isError) {
+            const out = $('console-log-output');
+            if (out.dataset.started !== '1') { out.textContent = ''; out.dataset.started = '1'; }
+            const row = document.createElement('div');
+            if (isError) row.className = 'is-error';
+            const t = document.createElement('span');
+            t.className = 'log-time';
+            t.textContent = new Date().toLocaleTimeString();
+            row.append(t, document.createTextNode(message));
+            out.appendChild(row);
+            out.scrollTop = out.scrollHeight;
+            if (isError) setConsoleError(true);
+        }
+        function clearLogs() { const out = $('console-log-output'); out.textContent = ''; setConsoleError(false); }
+        api.onLog(message => log(message, /COULD NOT|ERROR|CRASH|IN USE|ALLOW|STOPPED/.test(message)));
+
+        // ---------------------------------------------------------------- pick menu
+        const pickMenu = $('pick-menu');
+        function openPickMenu(anchor, items, onPick) {
+            pickMenu.textContent = '';
+            for (const item of items) {
+                const b = document.createElement('button');
+                b.className = 'pick-item' + (item.current ? ' is-current' : '');
+                b.textContent = item.label;
+                if (item.font) { b.style.fontFamily = item.font; b.style.textTransform = 'none'; b.style.fontSize = '14px'; }
+                b.onclick = (e) => { e.stopPropagation(); pickMenu.style.display = 'none'; onPick(item.value); };
+                pickMenu.appendChild(b);
+            }
+            pickMenu.style.display = 'block';
+            const r = anchor.getBoundingClientRect();
+            const w = pickMenu.offsetWidth, h = pickMenu.offsetHeight;
+            pickMenu.style.left = Math.max(4, Math.min(r.left, window.innerWidth - w - 4)) + 'px';
+            pickMenu.style.top = (r.bottom + h + 4 < window.innerHeight ? r.bottom + 4 : Math.max(4, r.top - h - 4)) + 'px';
+        }
+        document.addEventListener('mousedown', e => { if (!pickMenu.contains(e.target)) pickMenu.style.display = 'none'; });
+
+        function openDisplayMenu(anchor) {
+            const items = [{ label: 'AUTO (SECOND SCREEN)', value: null, current: state.outputDisplayId === null }]
+                .concat(state.displays.map(d => ({ label: 'DISPLAY ' + d.label, value: d.id, current: d.id === state.outputDisplayId })));
+            openPickMenu(anchor, items, id => api.setOutputDisplay(id));
+        }
+
+        // ---------------------------------------------------------------- slide list
+        function words(text) { return (text.match(/\S+/g) || []).length; }
+        // Spoken at about 140 words a minute
+        function speakTime(w) { const s = Math.round(w / 140 * 60); return Math.floor(s / 60) + ':' + two(s % 60); }
+
+        function renderDeck() {
+            const list = $('playlist');
+            list.textContent = '';
+            const slides = deck.slides || [];
+            if (!slides.length) {
+                const live = state && state.source === 'live';
+                list.innerHTML = live
+                    ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING POWERPOINT' : 'WAITING FOR POWERPOINT'}</div>
+                       <div class="empty-hint">OPEN A SAVED .PPTX IN POWERPOINT<br>TO SEE ITS SLIDE LIST HERE</div></div>`
+                    : `<div class="empty-playlist"><div class="empty-title">NO DECK LOADED</div>
+                       <div class="empty-hint">CLICK <span class="empty-key">+ OPEN DECK</span> TO BEGIN${state && state.liveSupported ? '<br>OR <span class="empty-key green">LIVE</span> TO FOLLOW POWERPOINT' : ''}</div></div>`;
+                updateDeckHint();
+                return;
+            }
+            slides.forEach((s, i) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item' + (s.hidden ? ' is-hidden' : '');
+                item.dataset.index = i;
+                item.onclick = () => api.goTo(i);
+
+                const num = document.createElement('div');
+                num.className = 'cue-number-box';
+                num.textContent = two(i + 1);
+
+                const content = document.createElement('div');
+                content.className = 'cue-content';
+                const row = document.createElement('div');
+                row.className = 'playlist-row';
+                const name = document.createElement('span');
+                name.className = 'clip-name' + (s.title ? '' : ' untitled');
+                name.textContent = s.title || 'SLIDE ' + (i + 1);
+                name.title = name.textContent;
+                const meta = document.createElement('div');
+                meta.className = 'cue-meta-info';
+                const w = words(s.notes);
+                if (s.hidden) meta.insertAdjacentHTML('beforeend', '<span class="meta-tag tag-dim">HIDDEN</span>');
+                meta.insertAdjacentHTML('beforeend', w ? `<span class="meta-tag">${w} WORDS</span>` : '<span class="meta-tag tag-warn">NO NOTES</span>');
+                const time = document.createElement('span');
+                time.className = 'runtime-badge';
+                time.textContent = w ? '~' + speakTime(w) : '';
+                time.title = 'ABOUT HOW LONG THE NOTES TAKE TO SAY';
+                row.append(name, meta, time);
+
+                const preview = document.createElement('div');
+                preview.className = 'notes-preview' + (s.notes ? '' : ' none');
+                preview.textContent = s.notes ? s.notes.replace(/\n+/g, ' · ') : 'No speaker notes on this slide';
+                content.append(row, preview);
+                item.append(num, content);
+                list.appendChild(item);
+            });
+            updateDeckHint();
+            markCurrent();
+        }
+
+        function updateDeckHint() {
+            const slides = deck.slides || [];
+            const hint = $('deck-hint');
+            if (!slides.length) { hint.textContent = deck.name ? deck.name.toUpperCase() : 'ACCEPTED: PPTX'; hint.title = ''; return; }
+            const total = slides.reduce((n, s) => n + words(s.notes), 0);
+            const txt = `${deck.name.toUpperCase()} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES · ~${Math.max(1, Math.round(total / 140))} MIN SPOKEN`;
+            hint.textContent = txt;
+            hint.title = (deck.file || '') + '\n' + txt;
+        }
+
+        let markedIndex = -1;
+        function markCurrent() {
+            const list = $('playlist');
+            list.classList.toggle('is-live', !!state && state.source === 'live');
+            const idx = state ? state.index : -1;
+            for (const el of list.querySelectorAll('.playlist-item.live')) el.classList.remove('live');
+            const el = list.querySelector(`.playlist-item[data-index="${idx}"]`);
+            if (el) {
+                el.classList.add('live');
+                if (idx !== markedIndex) el.scrollIntoView({ block: 'nearest', behavior: markedIndex < 0 ? 'auto' : 'smooth' });
+            }
+            markedIndex = idx;
+        }
+
+        // ---------------------------------------------------------------- preview (PGM)
+        const previewBox = $('preview-box');
+        const previewHost = document.createElement('div');
+        previewHost.style.cssText = 'position:absolute; inset:0;';
+        previewBox.prepend(previewHost);
+        const view = new NotesView(previewHost);
+
+        function fitPreview() {
+            if (!state) return;
+            const w = state.output.width || 1920, h = state.output.height || 1080;
+            previewBox.style.aspectRatio = `${w} / ${h}`;
+            view.setSize(w, h, previewBox.clientWidth / w);
+        }
+        new ResizeObserver(fitPreview).observe(previewBox);
+
+        function renderPreview() {
+            if (!state || !settings) return;
+            fitPreview();
+            view.update(state, settings);
+            if (state.output.open && lastStatus) view.setOffset(lastStatus.offset);
+        }
+
+        // With the output closed, the preview runs the scrolling itself
+        let lastFrame = performance.now();
+        function frame(now) {
+            const dt = Math.min(0.1, (now - lastFrame) / 1000);
+            lastFrame = now;
+            if (state && !state.output.open) {
+                view.tick(dt);
+                showScrollStatus(view.status());
+            }
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        api.onScrollCommand(cmd => {
+            if (cmd.type === 'by') view.scrollBy(cmd.value);
+            else if (cmd.type === 'page') view.pageBy(cmd.value);
+            else if (cmd.type === 'to') view.scrollToFraction(cmd.value);
+            else if (cmd.type === 'top') view.restart();
+        });
+
+        api.onScrollStatus(status => {
+            lastStatus = status;
+            if (state && state.output.open) {
+                view.setOffset(status.offset);
+                showScrollStatus(status);
+            }
+        });
+
+        const slider = $('scroll-slider');
+        let dragging = false;
+        slider.addEventListener('pointerdown', () => { dragging = true; });
+        window.addEventListener('pointerup', () => { dragging = false; });
+        slider.addEventListener('input', () => {
+            const f = slider.value / 1000;
+            if (state.output.open) api.scrollCommand({ type: 'to', value: f });
+            else view.scrollToFraction(f);
+        });
+
+        const PHASES = {
+            scrolling: ['SCROLLING', '#16a34a', '#fff'],
+            waiting: ['STARTING', '#222', '#fbbf24'],
+            paused: ['PAUSED', '#78350f', '#fff'],
+            manual: ['MANUAL', '#222', '#d4d4d4'],
+            end: ['END', '#222', '#d4d4d4']
+        };
+        function showScrollStatus(st) {
+            if (!dragging) slider.value = st.max > 0 ? Math.round(st.offset / st.max * 1000) : 0;
+            slider.disabled = !(st.max > 0);
+            const badge = $('phase-badge');
+            const p = PHASES[st.phase];
+            if (p) {
+                badge.style.display = '';
+                badge.textContent = p[0];
+                badge.style.background = p[1];
+                badge.style.color = p[2];
+            } else {
+                badge.style.display = 'none';
+            }
+            const fit = settings && settings.autoFit ? 'AUTO-FIT' : 'FIXED';
+            const pct = st.max > 0 ? Math.round(st.offset / st.max * 100) + '%' : 'FITS';
+            const mid = `<b>${st.fontPt || '--'} PT</b> ${fit}<br>SCROLL <b>${pct}</b>`;
+            if ($('tc-mid').innerHTML !== mid) $('tc-mid').innerHTML = mid;
+        }
+
+        // ---------------------------------------------------------------- state
+        function toggleLive() {
+            api.setSource(state.source === 'live' ? 'file' : 'live');
+        }
+
+        function renderState() {
+            const s = state;
+            const live = s.source === 'live';
+
+            const btnLive = $('btn-live');
+            btnLive.classList.toggle('is-green', live);
+            btnLive.disabled = !s.liveSupported;
+            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING' : 'LIVE MODE NEEDS POWERPOINT ON WINDOWS OR MACOS';
+            $('btn-reload').disabled = !s.deckFile || live;
+
+            $('btn-output').classList.toggle('is-green', s.output.open);
+            $('btn-fullscreen').classList.toggle('is-blue', s.output.open && s.output.fullscreen);
+            $('btn-fullscreen').disabled = !s.output.open;
+            const disp = s.displays.find(d => d.id === s.outputDisplayId);
+            $('display-hint').textContent = (s.output.open ? `OUTPUT ${s.output.width}x${s.output.height}` : 'OUTPUT OFF') + ' · ' + (disp ? 'DISPLAY ' + disp.label : 'AUTO DISPLAY');
+            $('preview-placeholder').style.display = s.output.open ? 'none' : '';
+
+            const num = s.count ? two(s.index + 1) : '--';
+            $('pgm-title').textContent = 'PGM: ' + (s.count ? `${num} — ${s.title || 'SLIDE ' + (s.index + 1)}` : 'NO DECK');
+            $('slide-counter').textContent = s.count ? `${num} / ${two(s.count)}` : '-- / --';
+
+            const src = $('source-badge');
+            src.textContent = live ? 'LIVE' : 'FILE';
+            src.style.background = live ? '#16a34a' : '#222';
+            src.style.color = live ? '#fff' : '#d4d4d4';
+            src.style.border = live ? '1px solid #16a34a' : '1px solid #333';
+
+            const dot = $('source-dot'), text = $('source-text');
+            if (live) {
+                const ok = s.live.status === 'ok';
+                dot.className = 'tc-ref-dot ' + (ok ? 'dot-green' : 'dot-amber');
+                text.textContent = ok ? 'LIVE: ' + (s.live.name || 'POWERPOINT').toUpperCase() : s.live.message;
+                text.style.color = ok ? '#22c55e' : '#fbbf24';
+            } else {
+                dot.className = 'tc-ref-dot ' + (s.deckFile ? 'dot-blue' : '');
+                text.textContent = s.deckFile ? 'FILE: ' + s.deckName.toUpperCase() : 'NO DECK';
+                text.style.color = s.deckFile ? 'var(--blue)' : '#777';
+            }
+
+            const pause = $('btn-pause');
+            pause.textContent = s.paused ? '▶ RESUME' : '❚❚ PAUSE';
+            pause.classList.toggle('is-paused', s.paused);
+
+            $('btn-prev').disabled = live || !s.count || s.index <= 0;
+            $('btn-next').disabled = live || !s.count || s.index >= s.count - 1;
+            $('controls-note').style.display = live ? '' : 'none';
+
+            markCurrent();
+            renderPreview();
+            updateTimer();
+        }
+
+        function updateTimer() {
+            if (!state) return;
+            const t = njFormatTime(Date.now() - state.slideStartedAt);
+            if ($('slide-timer').textContent !== t) $('slide-timer').textContent = t;
+        }
+        setInterval(updateTimer, 250);
+
+        api.onState(s => {
+            const sourceChanged = !state || state.source !== s.source || state.live.status !== s.live.status;
+            state = s;
+            if (sourceChanged && !(deck.slides || []).length) renderDeck();
+            renderState();
+        });
+        api.onDeck(d => { deck = d; renderDeck(); });
+        api.onSettings(s => { settings = s; renderSettings(); renderPreview(); });
+
+        // ---------------------------------------------------------------- display settings
+        const FONTS = [
+            ['SYSTEM SANS', '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif'],
+            ['ARIAL', 'Arial, Helvetica, sans-serif'],
+            ['HELVETICA', 'Helvetica, Arial, sans-serif'],
+            ['VERDANA', 'Verdana, Geneva, sans-serif'],
+            ['TAHOMA', 'Tahoma, Verdana, sans-serif'],
+            ['CALIBRI', 'Calibri, Carlito, "Segoe UI", sans-serif'],
+            ['TREBUCHET', '"Trebuchet MS", sans-serif'],
+            ['GEORGIA', 'Georgia, serif'],
+            ['TIMES', '"Times New Roman", Times, serif'],
+            ['MONO', 'var(--font-mono), "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace']
+        ];
+        const PRESETS = [
+            ['#ffffff', '#000000'], ['#facc15', '#000000'], ['#4ade80', '#000000'],
+            ['#67e8f9', '#000000'], ['#ffffff', '#0b1d3a'], ['#000000', '#ffffff']
+        ];
+
+        const set = (changes) => api.setSettings(changes);
+
+        function sliderRow(label, key, min, max, step, fmt, disabledIf) {
+            return { type: 'slider', label, key, min, max, step, fmt, disabledIf };
+        }
+        function badgeRow(label, items) { return { type: 'badges', label, items }; }
+
+        const PANELS = [
+            ['TEXT', [
+                { type: 'font', label: 'FONT' },
+                badgeRow('STYLE', [['BOLD', 'bold'], ['UPPERCASE', 'uppercase']]),
+                { type: 'segment', label: 'ALIGN', key: 'align', options: [['LEFT', 'left'], ['CENTRE', 'center'], ['RIGHT', 'right'], ['JUSTIFY', 'justify']] },
+                sliderRow('LINE SPACING', 'lineSpacing', 1, 2.5, 0.05, v => v.toFixed(2)),
+                sliderRow('PARAGRAPH GAP', 'paraSpacing', 0, 2, 0.1, v => v.toFixed(1)),
+                sliderRow('SIDE MARGIN', 'margin', 0, 30, 1, v => v + '%')
+            ]],
+            ['COLOUR', [
+                { type: 'presets', label: 'PRESET' },
+                { type: 'colors', label: 'CUSTOM' }
+            ]],
+            ['FIT & SCROLL', [
+                badgeRow('AUTO-FIT', [['AUTO-FIT TEXT TO SCREEN', 'autoFit']]),
+                sliderRow('MIN SIZE', 'fitMin', 12, 200, 1, v => v + ' PT', s => !s.autoFit),
+                sliderRow('MAX SIZE', 'fitMax', 12, 300, 1, v => v + ' PT', s => !s.autoFit),
+                sliderRow('FIXED SIZE', 'fontSize', 12, 300, 1, v => v + ' PT', s => s.autoFit),
+                badgeRow('AUTO-SCROLL', [['SCROLL WHEN TEXT DOESN\'T FIT', 'autoScroll']]),
+                sliderRow('SPEED', 'scrollSpeed', 5, 200, 1, v => v + ' PT/S', s => !s.autoScroll),
+                sliderRow('START DELAY', 'scrollDelay', 0, 20, 0.5, v => v.toFixed(1) + ' S', s => !s.autoScroll)
+            ]],
+            ['SCREEN', [
+                badgeRow('SHOW', [['SLIDE #', 'showSlideNumber'], ['TIMER', 'showTimer'], ['CLOCK', 'showClock']]),
+                badgeRow('LAYOUT', [['CENTRE VERTICALLY', 'centerVertical'], ['MIRROR', 'mirror']]),
+                badgeRow('KEYS', [['CTRL+ALT KEYS WORK IN ANY APP', 'globalKeys']])
+            ]]
+        ];
+
+        const controls = []; // { update(settings) }
+
+        function buildSettings() {
+            const root = $('settings-panels');
+            for (const [title, rows] of PANELS) {
+                const panel = document.createElement('div');
+                panel.className = 'panel';
+                const head = document.createElement('div');
+                head.className = 'tc-ref-header';
+                head.innerHTML = `<span>${title}</span>`;
+                if (title === 'TEXT') {
+                    const reset = document.createElement('button');
+                    reset.className = 'panel-reset';
+                    reset.textContent = 'RESET ALL';
+                    reset.title = 'PUT EVERY DISPLAY SETTING BACK TO ITS DEFAULT';
+                    reset.onclick = () => api.resetSettings();
+                    head.appendChild(reset);
+                }
+                panel.appendChild(head);
+                for (const r of rows) panel.appendChild(buildRow(r));
+                root.appendChild(panel);
+            }
+        }
+
+        function buildRow(r) {
+            const row = document.createElement('div');
+            row.className = 'ctl-row';
+            const label = document.createElement('span');
+            label.className = 'ctl-label';
+            label.textContent = r.label;
+            row.appendChild(label);
+
+            if (r.type === 'slider') {
+                const input = document.createElement('input');
+                Object.assign(input, { type: 'range', min: r.min, max: r.max, step: r.step });
+                const value = document.createElement('span');
+                value.className = 'ctl-value';
+                const paint = () => input.style.setProperty('--pct', ((input.value - r.min) / (r.max - r.min) * 100) + '%');
+                input.addEventListener('input', () => { paint(); value.textContent = r.fmt(Number(input.value)); set({ [r.key]: Number(input.value) }); });
+                row.append(input, value);
+                controls.push({ update(s) {
+                    if (document.activeElement !== input) input.value = s[r.key];
+                    paint();
+                    value.textContent = r.fmt(Number(s[r.key]));
+                    input.disabled = !!(r.disabledIf && r.disabledIf(s));
+                } });
+            } else if (r.type === 'badges' || r.type === 'segment') {
+                const wrap = document.createElement('div');
+                wrap.className = 'ctl-badges';
+                const items = r.type === 'badges' ? r.items : r.options;
+                const buttons = items.map(([text, val]) => {
+                    const b = document.createElement('button');
+                    b.className = 'badge';
+                    b.textContent = text;
+                    b.onclick = () => r.type === 'badges' ? set({ [val]: !settings[val] }) : set({ [r.key]: val });
+                    wrap.appendChild(b);
+                    return [b, val];
+                });
+                row.appendChild(wrap);
+                controls.push({ update(s) {
+                    for (const [b, val] of buttons) b.classList.toggle('active-hold', r.type === 'badges' ? !!s[val] : s[r.key] === val);
+                } });
+            } else if (r.type === 'font') {
+                const b = document.createElement('button');
+                b.className = 'cue-select';
+                b.onclick = () => openPickMenu(b, FONTS.map(([name, css]) => ({ label: name, value: css, font: css, current: settings.fontFamily === css })), css => set({ fontFamily: css }));
+                row.appendChild(b);
+                controls.push({ update(s) {
+                    const f = FONTS.find(([, css]) => css === s.fontFamily);
+                    b.textContent = f ? f[0] : 'CUSTOM';
+                } });
+            } else if (r.type === 'presets') {
+                const wrap = document.createElement('div');
+                wrap.className = 'swatches';
+                const buttons = PRESETS.map(([fg, bg]) => {
+                    const b = document.createElement('button');
+                    b.className = 'swatch';
+                    b.textContent = 'Aa';
+                    b.style.color = fg;
+                    b.style.background = bg;
+                    b.onclick = () => set({ color: fg, background: bg });
+                    wrap.appendChild(b);
+                    return [b, fg, bg];
+                });
+                row.appendChild(wrap);
+                controls.push({ update(s) {
+                    for (const [b, fg, bg] of buttons) b.classList.toggle('is-current', s.color.toLowerCase() === fg && s.background.toLowerCase() === bg);
+                } });
+            } else if (r.type === 'colors') {
+                const mk = (key, text) => {
+                    const wrap = document.createElement('label');
+                    wrap.className = 'color-pick';
+                    const input = document.createElement('input');
+                    input.type = 'color';
+                    input.addEventListener('input', () => set({ [key]: input.value }));
+                    const span = document.createElement('span');
+                    span.textContent = text;
+                    wrap.append(input, span);
+                    row.appendChild(wrap);
+                    controls.push({ update(s) { input.value = s[key]; } });
+                };
+                mk('color', 'TEXT');
+                mk('background', 'BACKGROUND');
+            }
+            return row;
+        }
+
+        function renderSettings() {
+            if (!settings) return;
+            for (const c of controls) c.update(settings);
+            $('global-hint').style.display = settings.globalKeys ? '' : 'none';
+        }
+
+        // ---------------------------------------------------------------- keys
+        const KEYS = { ArrowRight: 'next', PageDown: 'next', ArrowLeft: 'prev', PageUp: 'prev', ArrowDown: 'scroll-down', ArrowUp: 'scroll-up',
+            ' ': 'toggle-pause', Home: 'top', End: 'last', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller' };
+        window.addEventListener('keydown', e => {
+            if (e.target.closest('input[type="color"]')) return;
+            if (e.key === 'Escape') { pickMenu.style.display = 'none'; hideModal('credits-modal-overlay'); hideModal('console-modal'); return; }
+            const action = KEYS[e.key];
+            if (!action || e.ctrlKey || e.metaKey || e.altKey) return;
+            e.preventDefault();
+            if (action === 'top') api.scrollCommand({ type: 'top' });
+            else api.action(action);
+        });
+
+        // ---------------------------------------------------------------- start
+        buildSettings();
+        api.getInitial().then(init => {
+            for (const el of document.querySelectorAll('[data-app-version]')) el.textContent = 'V' + init.version;
+            document.title = `CLEAN NOTES JOE ${init.version} - OPERATOR`;
+            defaults = init.defaults;
+            settings = init.settings;
+            state = init.state;
+            deck = init.deck || { slides: [] };
+            if (navigator.platform.startsWith('Mac')) {
+                $('global-hint').innerHTML = '<kbd>⌘</kbd><kbd>⌥</kbd> + KEY: ANYWHERE';
+            }
+            renderSettings();
+            renderDeck();
+            renderState();
+        });
+    </script>
+</body>
+</html>

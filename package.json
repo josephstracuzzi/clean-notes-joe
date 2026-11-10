@@ -1,0 +1,48 @@
+{
+  "name": "clean-notes-joe",
+  "version": "0.1.0",
+  "description": "Speaker notes from PowerPoint, fullscreen on a second display, with auto-fit and auto-scroll (Windows)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/pptx.test.js && node test/version.test.js",
+    "version": "node test/version.test.js && git add CHANGELOG.md",
+    "build": "electron-builder --win --x64",
+    "build:win": "electron-builder --win --x64"
+  },
+  "author": "Joseph Stracuzzi",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.cleannotesjoe.app",
+    "productName": "Clean Notes Joe",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "logo.ico"
+    },
+    "portable": {
+      "artifactName": "${productName} ${version} Portable.exe"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "pptx.js",
+      "live.js",
+      "notes-view.js",
+      "index.html",
+      "output.html",
+      "logo.png",
+      "logo.ico",
+      "icon.png"
+    ]
+  }
+}

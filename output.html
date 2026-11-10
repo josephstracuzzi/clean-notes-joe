@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    <title>CLEAN NOTES JOE - OUTPUT</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none; user-select: none; }
+        #host { position: absolute; inset: 0; }
+    </style>
+</head>
+<body>
+    <div id="host"></div>
+    <script src="notes-view.js"></script>
+    <script>
+        // The output is in charge of scrolling: it runs the auto-scroll and reports where it is, and
+        // the console's preview follows that report.
+        const api = window.notesAPI;
+        const host = document.getElementById('host');
+        const view = new NotesView(host);
+        let settings = null;
+        let state = null;
+
+        function fit() {
+            view.setSize(window.innerWidth, window.innerHeight);
+            if (settings) document.body.style.background = settings.background;
+        }
+
+        function render() {
+            if (!settings || !state) return;
+            document.body.style.background = settings.background;
+            view.update(state, settings);
+            reportNow();
+        }
+
+        api.onSettings(s => { settings = s; render(); });
+        api.onState(s => { state = s; render(); });
+        api.onScrollCommand(cmd => {
+            if (cmd.type === 'by') view.scrollBy(cmd.value);
+            else if (cmd.type === 'page') view.pageBy(cmd.value);
+            else if (cmd.type === 'to') view.scrollToFraction(cmd.value);
+            else if (cmd.type === 'top') view.restart();
+            reportNow();
+        });
+
+        window.addEventListener('resize', () => { fit(); reportNow(); });
+        fit();
+
+        // Scroll position reports, about 15 a second while something changes
+        let lastReport = '';
+        function reportNow() {
+            const s = view.status();
+            const key = Math.round(s.offset) + '|' + Math.round(s.max) + '|' + s.phase + '|' + s.fontPt;
+            if (key === lastReport) return;
+            lastReport = key;
+            api.sendScrollStatus(s);
+        }
+        setInterval(reportNow, 66);
+
+        let last = performance.now();
+        function frame(now) {
+            const dt = Math.min(0.1, (now - last) / 1000);
+            last = now;
+            view.tick(dt);
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        // Keys pressed on the output do the same as on the console
+        const KEYS = { ArrowRight: 'next', PageDown: 'next', ArrowLeft: 'prev', PageUp: 'prev', ArrowDown: 'scroll-down', ArrowUp: 'scroll-up',
+            ' ': 'toggle-pause', Home: 'top', '+': 'bigger', '=': 'bigger', '-': 'smaller', '_': 'smaller' };
+        window.addEventListener('keydown', e => {
+            const action = KEYS[e.key];
+            if (action && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); api.action(action); }
+        });
+
+        api.getInitial().then(init => {
+            if (!init) return;
+            document.title = `CLEAN NOTES JOE ${init.version} - OUTPUT`;
+            settings = init.settings;
+            state = init.state;
+            render();
+        });
+    </script>
+</body>
+</html>
