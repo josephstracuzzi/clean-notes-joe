@@ -85,7 +85,7 @@ return "not-running"
 `;
 
 function cleanNotes(s) {
-    return String(s || '').replace(/\r\n?/g, '\n').replace(/\v/g, '\n').trim();
+    return String(s || '').replace(/\r\n?/g, '\n').replace(/\v/g, '\u2028').trim(); // \v = soft line break (Shift+Enter)
 }
 
 class LiveFollower {

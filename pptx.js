@@ -80,7 +80,8 @@ function readRels(zip, partPath) {
     return rels;
 }
 
-// Text of a <p:txBody>: one line per <a:p>, <a:br/> as a line break inside the paragraph
+// Text of a <p:txBody>: paragraphs (<a:p>) separated by \n; a soft line break (<a:br/>, Shift+Enter)
+// is U+2028 so it stays inside its paragraph. At most one blank paragraph is kept between sections.
 function bodyText(spXml) {
     const paras = [];
     const paraRe = /<a:p(?:\s[^>]*)?>([\s\S]*?)<\/a:p>|<a:p(?:\s[^>]*)?\/>/g;
@@ -91,7 +92,7 @@ function bodyText(spXml) {
         const tokRe = /<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>|<a:br\b[^>]*\/?>/g;
         let t;
         while ((t = tokRe.exec(inner))) {
-            line += t[1] !== undefined ? decodeEntities(t[1]) : '\n';
+            line += t[1] !== undefined ? decodeEntities(t[1]) : '\u2028';
         }
         paras.push(line);
     }

@@ -140,10 +140,12 @@
             const shown = empty ? (st.count ? s.emptyText : 'NO NOTES LOADED') : text;
             if (c.dataset.text !== shown) {
                 c.textContent = '';
-                for (const line of shown.split('\n')) {
-                    if (!line.trim()) continue;
+                // One <p> per paragraph; a blank paragraph between sections is kept as an empty line;
+                // soft line breaks (U+2028) stay inside their paragraph with normal line spacing
+                for (const para of shown.split('\n')) {
                     const p = document.createElement('p');
-                    p.textContent = line;
+                    const text = para.replace(/\u2028/g, '\n');
+                    if (!text.trim()) { p.textContent = '\u00a0'; p.className = 'nj-blank'; } else p.textContent = text;
                     c.appendChild(p);
                 }
                 c.dataset.text = shown;

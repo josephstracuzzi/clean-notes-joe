@@ -7,7 +7,7 @@ const { slides } = readPresentation(path.join(__dirname, 'fixture.pptx'));
 assert.strictEqual(slides.length, 5);
 assert.deepStrictEqual(slides.map(s => s.title), ['Welcome', 'Line breaks', 'No notes', 'Hidden one', 'Unicode']);
 assert.strictEqual(slides[0].notes, 'Welcome everyone.\nToday: results, roadmap & Q&A.');
-assert.strictEqual(slides[1].notes, 'First line\nSecond line <after> a break');
+assert.strictEqual(slides[1].notes, 'First line\u2028Second line <after> a break');
 assert.strictEqual(slides[2].notes, '');
 assert.strictEqual(slides[3].hidden, true);
 assert.strictEqual(slides[0].hidden, false);
