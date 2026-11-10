@@ -9,6 +9,17 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.5.3] - 2026-11-10
+
+### Fixed
+- **No old slide lists in NETWORK**: starting Clean Notes Joe in NETWORK with the Sender open but PowerPoint closed showed
+  the deck last loaded on that PC (its notes could reach the output). NETWORK now only ever shows what the Sender sends.
+  The Sender also stops sending the previous deck when PowerPoint closes, has no presentation open, is in Protected View
+  or can't be reached; a busy moment (end-of-show black screen) or a helper restart still keeps the last slide.
+
+### Changed
+- The console's right-hand pane always shows its scrollbar, so opening or closing a settings panel doesn't shift anything.
+
 ## [0.5.2] - 2026-11-10
 
 ### Fixed

@@ -16,7 +16,8 @@
             user-select: none; text-transform: uppercase; overflow: hidden;
         }
         .left-pane, .right-pane { padding: 10px 16px 16px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; min-width: 0; }
-        .right-pane { background: #141414; border-left: 1px solid #262626; }
+        /* Scrollbar always shown, so opening or closing a settings panel never changes the pane's width */
+        .right-pane { background: #141414; border-left: 1px solid #262626; overflow-y: scroll; scrollbar-gutter: stable; }
         .right-pane > div { flex-shrink: 0; }
         * { scrollbar-width: thin; scrollbar-color: #333 #181818; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }

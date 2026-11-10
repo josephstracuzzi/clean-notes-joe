@@ -358,6 +358,10 @@ function setSource(source) {
         state.live = { status: 'off', message: '', name: '' };
     }
     if (source === 'network') {
+        // Only what the paired PC sends is shown: never a deck that was loaded on this PC
+        deck = { file: null, name: '', slides: [], error: null };
+        watchDeck(null);
+        sendDeck();
         startReceiver();
         applyReceiver();
     } else {
@@ -389,7 +393,7 @@ const netConfig = {
 const NET_DISCOVERY = Number(process.env.CNJ_DISCOVERY_PORT) || DISCOVERY_PORT;
 
 let receiver = null;
-let receiverDeckKey = '';
+let receiverDeckKey = null; // null = nothing applied yet, so the first update always sets the slide list
 
 function cleanTarget(t) {
     if (!t || typeof t !== 'object') return null;
@@ -424,7 +428,7 @@ function startReceiver() {
         else if (st === 'bad-code') notifyOperator(`${who.toUpperCase()} REFUSED THE CONNECTION: THE SHOW CODES DON'T MATCH.`);
         lastStatus = st;
     });
-    receiverDeckKey = '';
+    receiverDeckKey = null;
     receiver.start();
 }
 
@@ -452,9 +456,10 @@ function applyReceiver() {
         liveNotes = l.notes;
         liveTitle = l.title || null;
     } else {
+        // Nothing received yet: show no notes (an empty string, so nothing falls back to a local deck)
         state.index = 0;
         state.count = 0;
-        liveNotes = null;
+        liveNotes = '';
         liveTitle = null;
     }
     refreshCurrent();

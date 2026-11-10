@@ -135,6 +135,12 @@ function onPowerPoint(s) {
         ppt.status = s.state;
         ppt.message = MESSAGES[s.state] || 'WAITING FOR POWERPOINT';
         ppt.detail = s.message || DETAILS[s.state] || '';
+        // No presentation to follow any more: stop sending the old slide list and notes, so a notes PC
+        // never shows a previous deck. (A helper restart or a busy moment keeps the last slide.)
+        if (['not-running', 'no-presentation', 'protected', 'unreachable'].includes(s.state)) {
+            clearDeck('');
+            Object.assign(ppt, { name: '', file: null, index: 0, count: 0, title: '', notes: '' });
+        }
     }
     push();
 }
