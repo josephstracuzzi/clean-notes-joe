@@ -31,6 +31,41 @@ npm start
   - Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View*
     if it would take over the screen you use for notes.
 
+## Network: PowerPoint on one PC, notes on another
+Any copy of Clean Notes Joe can **send** what it's showing, and any other copy on the same network can
+**receive** it. Each notes PC is paired with one PowerPoint PC. With main and backup machines, pair the main notes PC
+with the main PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no automatic switching.
+
+**On the PowerPoint PC** (NETWORK panel, SEND section):
+1. Turn on **LIVE** so it follows PowerPoint (or open the deck with + OPEN DECK).
+2. Set **ROLE** to MAIN or BACKUP and give the PC a name you'll recognise (e.g. STAGE-A).
+3. Click **SEND TO NOTES PCS**. The first time, Windows asks to allow Clean Notes Joe on the network.
+   Allow it on **Private** networks.
+
+**On the notes PC:**
+1. Click **NETWORK** (next to LIVE).
+2. Under **PAIRED WITH**, pick the PowerPoint PC from the list (shown with its role and IP address). If the list
+   stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and enter the address shown under
+   THIS PC'S IP on the PowerPoint PC.
+
+Slide changes arrive almost instantly. The pairing is remembered by the PC's identity, not its IP address, so it
+still finds the PowerPoint PC if the network gives it a new address. If the connection drops (cable pulled, PC
+restarted), the notes screen keeps the last notes, the console shows **CONNECTION LOST**, and it reconnects by
+itself. The output never shows network status, so the presenter only ever sees notes.
+
+**SHOW CODE** (optional): enter the same code on every PC in the show. Machines without the code are refused
+and are marked in the PAIRED WITH list. This is useful on shared or DHCP networks where another show might be running
+Clean Notes Joe. Leave it blank on a private show network.
+
+The connection is one way: a notes PC can't change slides or control the PowerPoint PC.
+It uses TCP port 47820 and UDP port 47821 on the local network.
+
+## Test deck
+`test_decks/Clean Notes Joe Test Deck.pptx` opens on the first launch. Its 10 slides cover very short notes,
+several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and
+blank lines, a hidden slide, special characters and other scripts, and all-caps notes. Each slide says on it what
+it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
+
 ## Display settings
 | | |
 |---|---|
@@ -81,5 +116,7 @@ The app is portable (nothing to install) and not code-signed, so on first launch
 | `output.html` | fullscreen notes output (runs the auto-scroll) |
 | `notes-view.js` | the notes renderer, shared by the output and the PGM preview |
 | `pptx.js` | reads slide titles and notes from a `.pptx` (no dependencies) |
+| `network.js` | network sync: senders announce themselves and serve their notes; a receiver follows one paired sender |
 | `live.js` | follows PowerPoint through a hidden Windows PowerShell process (COM). Also has an untested macOS path for later |
-| `test/` | `npm test`: the `.pptx` reader and the changelog check |
+| `test/` | `npm test`: the `.pptx` reader, network sync (real sockets) and the changelog check |
+| `test_decks/` | the test deck (bundled with the app) |

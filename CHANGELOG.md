@@ -9,6 +9,24 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.3.0] - 2026-11-10
+
+### Added
+- **Network sync**: PowerPoint on one PC, notes on another. Any PC can **SEND** what it shows (role MAIN or BACKUP,
+  with a name); a notes PC picks **NETWORK** and is **PAIRED WITH** one sender, found automatically on the local
+  network or by typing its IP address. For main and backup setups, each notes PC is paired with its own PowerPoint PC.
+  - Remembered by the PC's identity, not its IP address, so a new DHCP address doesn't break the pairing.
+  - Connection loss (including a pulled cable, noticed within about 3 seconds) keeps the last notes on screen,
+    shows CONNECTION LOST on the console and reconnects by itself.
+  - Optional **SHOW CODE** keeps other shows on a shared network out.
+  - One way only: notes PCs can't control the PowerPoint PC.
+- **Test deck** (10 slides covering short, long, scrolling, empty, hidden, special-character and line-break notes),
+  bundled with the app and opened on the first launch.
+
+### Fixed
+- Soft line breaks (Shift+Enter) in notes now stay inside their paragraph, and a blank line between sections
+  is kept, matching PowerPoint.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added
