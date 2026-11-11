@@ -74,7 +74,8 @@
         .playlist-item:hover { background: #2c2c2c; }
         .playlist.is-live .playlist-item { cursor: default; }
         .playlist-item.live { border-color: var(--green); background: rgba(40, 167, 69, 0.15); }
-        .playlist-item.is-hidden { opacity: 0.55; }
+        /* Hidden slide: its number, name, notes and times are dimmed, the red HIDDEN tag stays at full strength */
+        .playlist-item.is-hidden :is(.cue-number-box, .clip-name, .notes-preview, .runtime-badge, .meta-tag:not(.tag-hidden)) { opacity: 0.55; }
         .cue-number-box { display: flex; align-items: center; justify-content: center; width: 50px; background: #161616; font-weight: 900; font-size: 20px; color: #777; border-right: 1px solid #333; flex-shrink: 0; font-family: var(--font-mono); }
         .playlist-item.live .cue-number-box { background: rgba(40, 167, 69, 0.25); color: var(--green); }
         .cue-content { display: flex; flex-direction: column; gap: 5px; padding: 8px 12px; flex-grow: 1; min-width: 0; }
@@ -85,6 +86,7 @@
         .meta-tag { color: #b5b5b5; background: #1c1c1c; border: 1px solid #333; padding: 2px 5px; border-radius: 2px; line-height: 12px; white-space: nowrap; }
         .meta-tag.tag-warn { color: #fbbf24; border-color: #78350f; background: rgba(245, 158, 11, 0.1); }
         .meta-tag.tag-dim { color: #777; }
+        .meta-tag.tag-hidden { color: #f87171; border-color: #7f1d1d; background: rgba(239, 68, 68, 0.12); }
         .runtime-badge { color: #e5e5e5; font-weight: bold; font-size: 12px; font-variant-numeric: tabular-nums; font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; min-width: 44px; text-align: right; }
         .notes-preview { text-transform: none; font-size: 12px; color: #9a9a9a; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
         .playlist-item.live .notes-preview { color: #cfcfcf; }
@@ -506,7 +508,7 @@
                 const meta = document.createElement('div');
                 meta.className = 'cue-meta-info';
                 const w = words(s.notes);
-                if (s.hidden) meta.insertAdjacentHTML('beforeend', '<span class="meta-tag tag-dim">HIDDEN</span>');
+                if (s.hidden) meta.insertAdjacentHTML('beforeend', '<span class="meta-tag tag-hidden">HIDDEN</span>');
                 meta.insertAdjacentHTML('beforeend', w ? `<span class="meta-tag">${w} WORDS</span>` : '<span class="meta-tag tag-warn">NO NOTES</span>');
                 const time = document.createElement('span');
                 time.className = 'runtime-badge';
@@ -530,7 +532,7 @@
             const hint = $('deck-hint');
             hint.classList.toggle('is-refreshed', !!refreshedAt);
             if (!slides.length) { hint.textContent = deck.name ? deck.name.toUpperCase() : 'ACCEPTED: PPTX'; hint.title = ''; return; }
-            const total = slides.reduce((n, s) => n + words(s.notes), 0);
+            const total = slides.reduce((n, s) => n + (s.hidden ? 0 : words(s.notes)), 0); // hidden slides aren't presented
             const txt = `${deck.name.toUpperCase()} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES · ~${Math.max(1, Math.round(total / 140))} MIN SPOKEN`;
             const time = refreshedAt ? new Date(refreshedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
             hint.textContent = refreshedAt ? `✓ REFRESHED ${time} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES` : txt;
@@ -810,8 +812,10 @@
             pause.classList.toggle('is-paused', s.paused);
 
             const follows = live || network;
-            $('btn-prev').disabled = follows || !s.count || s.index <= 0;
-            $('btn-next').disabled = follows || !s.count || s.index >= s.count - 1;
+            // Off when there's no slide to step to (hidden slides are stepped over)
+            const shown = (deck.slides || []).map((sl, i) => (sl.hidden ? -1 : i)).filter(i => i >= 0);
+            $('btn-prev').disabled = follows || !s.count || !shown.some(i => i < s.index);
+            $('btn-next').disabled = follows || !s.count || !shown.some(i => i > s.index);
             $('controls-note').style.display = follows ? '' : 'none';
             $('controls-note').textContent = network ? 'NETWORK: SLIDES ARE CHANGED ON THE POWERPOINT PC' : 'LOCAL: CHANGE SLIDES IN POWERPOINT';
 

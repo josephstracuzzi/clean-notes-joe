@@ -33,6 +33,8 @@ says **✓ REFRESHED** with the time.
 
 - **FILE** shows the notes of the deck opened with **LOAD**. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn
   (most clickers) or by clicking a slide. Save the deck in PowerPoint and it reloads by itself.
+  Slides hidden in PowerPoint are stepped over, as in the slideshow, and left out of the spoken-time estimate. They
+  stay in the slide list with a red **HIDDEN** tag and can still be clicked.
 - **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor.
   Notes come straight from PowerPoint, so edits show up before you save. Only what PowerPoint has open is shown:
   with PowerPoint closed (or no presentation open) the slide list and output are empty.

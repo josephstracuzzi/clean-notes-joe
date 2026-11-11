@@ -9,6 +9,22 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.8.1] - 2026-11-11
+
+### Fixed
+- **Only one copy can run**: Clean Notes Joe and the Sender always use their own settings folder, so starting either
+  again (from the .exe, `npm start` or a shortcut with extra options) brings the open window forward instead of
+  opening a second copy.
+
+## [0.8.0] - 2026-11-11
+
+### Changed
+- **Hidden slides are skipped in FILE**, as in PowerPoint's slideshow: ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn,
+  End and the CTRL+ALT keys step over them, and a deck opens on its first slide that isn't hidden. They stay in the
+  slide list and can still be clicked. PREV and NEXT turn off when only hidden slides are left that way.
+- The **HIDDEN** tag in the slide list is red, so hidden slides stand out.
+- The **~MIN SPOKEN** estimate leaves out hidden slides' notes.
+
 ## [0.7.4] - 2026-11-11
 
 ### Changed

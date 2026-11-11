@@ -17,11 +17,10 @@ const { NetSender, deckHash, DEFAULT_PORT, DISCOVERY_PORT } = require('./network
 const VERSION = require('./package.json').version;
 
 // Its own settings folder and single-instance lock, separate from Clean Notes Joe's (also when run
-// from the source folder with `npm run start:sender`, where both would otherwise share one)
+// from the source folder with `npm run start:sender`, where both would otherwise share one). Fixed whatever
+// the command line says, so a second copy can never run. CNJ_SENDER_PROFILE is a test hook for a separate folder.
 app.setName('Clean Notes Joe Sender');
-if (!app.commandLine.hasSwitch('user-data-dir')) {
-    app.setPath('userData', path.join(app.getPath('appData'), 'clean-notes-joe-sender'));
-}
+app.setPath('userData', process.env.CNJ_SENDER_PROFILE || path.join(app.getPath('appData'), 'clean-notes-joe-sender'));
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) app.exit(0);

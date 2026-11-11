@@ -6,9 +6,6 @@ Ideas agreed for later, in no particular order. When one is built, it moves to C
   their defaults without resetting everything else.
 - **Per-deck settings**: a deck reopens with the size settings it had last time (for example after a rehearsal),
   so each presentation keeps its own sizing.
-- **Skip hidden slides in file mode**: when a `.pptx` is opened directly, ◀ PREV / NEXT ▶ (and the arrow keys)
-  step over slides hidden in PowerPoint, the way the slideshow does. They stay in the slide list, marked HIDDEN,
-  and can still be clicked. (LOCAL and NETWORK already follow whatever PowerPoint shows.)
 - **LibreOffice support**: open LibreOffice Impress files (`.odp`) in file mode, and follow a running LibreOffice
   Impress live, in Clean Notes Joe and in the Sender. Impress can already save as `.pptx`, which works today.
 - **Clearer source indicator**: make it obvious at a glance whether the notes come from **NETWORK** (and which PC),

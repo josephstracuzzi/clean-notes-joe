@@ -14,7 +14,10 @@ const { NetReceiver, DISCOVERY_PORT } = require('./network');
 const os = require('os');
 const crypto = require('crypto');
 
-// Single instance: a second launch focuses the running console instead
+// Single instance: a second launch focuses the running console instead. The lock belongs to the settings
+// folder, so that is fixed whatever the command line says (--user-data-dir would otherwise allow a second copy).
+// CNJ_PROFILE is a test hook for a separate folder.
+app.setPath('userData', process.env.CNJ_PROFILE || path.join(app.getPath('appData'), 'clean-notes-joe'));
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) app.exit(0);
 
@@ -280,7 +283,7 @@ function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
         const refreshed = deck.file === file; // the same file read again: REFRESH, or saved in PowerPoint
         deck = { file, name: path.basename(file), slides, error: null };
         netConfig.lastLocalFile = file;
-        if (!keepIndex) state.index = 0;
+        if (!keepIndex) state.index = Math.max(0, slides.findIndex(s => !s.hidden)); // the first slide the show would start on
         state.index = Math.max(0, Math.min(state.index, slides.length - 1));
         watchDeck(file);
         sendDeck();
@@ -319,6 +322,23 @@ function goTo(index) {
     if (i === state.index) return;
     state.index = i;
     refreshCurrent();
+}
+
+// NEXT / PREV and the keys step over hidden slides, as PowerPoint's slideshow does (clicking one still shows it)
+function step(dir) {
+    const slides = deck.slides;
+    for (let i = state.index + dir; i >= 0 && i < slides.length; i += dir) {
+        if (!slides[i].hidden) return goTo(i);
+    }
+}
+
+// First / last slide that isn't hidden (or the very first / last if they all are)
+function goToEnd(dir) {
+    const slides = deck.slides;
+    const order = slides.map((s, i) => i);
+    if (dir > 0) order.reverse();
+    const i = order.find(n => !slides[n].hidden);
+    goTo(i !== undefined ? i : (dir > 0 ? slides.length - 1 : 0));
 }
 
 // ---------------------------------------------------------------------------
@@ -693,10 +713,10 @@ function applySettings(changes) {
 
 function runAction(action) {
     switch (action) {
-        case 'next': goTo(state.index + 1); break;
-        case 'prev': goTo(state.index - 1); break;
-        case 'first': goTo(0); break;
-        case 'last': goTo(deck.slides.length - 1); break;
+        case 'next': step(1); break;
+        case 'prev': step(-1); break;
+        case 'first': goToEnd(-1); break;
+        case 'last': goToEnd(1); break;
         case 'scroll-down': scrollCommand({ type: 'by', value: 90 }); break;
         case 'scroll-up': scrollCommand({ type: 'by', value: -90 }); break;
         case 'page-down': scrollCommand({ type: 'page', value: 1 }); break;
