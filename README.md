@@ -93,17 +93,45 @@ Settings and the last deck are remembered in `%APPDATA%\clean-notes-joe`.
 | **- / +** | smaller / bigger text |
 | **Ctrl+Alt** + any of the above | the same, while PowerPoint or another app has focus (can be turned off under SCREEN → KEYS) |
 
+## Branches and pull requests
+The code lives in a private GitHub repo, [josephstracuzzi/clean-notes-joe](https://github.com/josephstracuzzi/clean-notes-joe).
+`main` is always releasable: nothing is committed to it directly.
+
+1. Start each change on its own branch from an up-to-date `main`:
+   ```
+   git switch main
+   git pull
+   git switch -c feature/source-indicator
+   ```
+   Name it `feature/...` (new features or settings), `fix/...` (bug fixes) or `docs/...` (README, changelog,
+   roadmap only).
+2. Commit as you go. Add a line for the change under `## [Unreleased]` in `CHANGELOG.md`, and if it came from
+   `ROADMAP.md`, remove it from there.
+3. Run `npm test`, then push and open a pull request:
+   ```
+   git push -u origin feature/source-indicator
+   gh pr create --fill
+   ```
+4. Once it has been tried in the app, merge it with `gh pr merge --squash --delete-branch`, then `git switch main`
+   and `git pull`.
+
+Releases are only cut from `main`, after the branches for that release are merged (see below).
+
 ## Versioning
 The version lives in `package.json` (currently shown as the blue badge next to the logo and in both window
 titles). Every release has a section in [CHANGELOG.md](CHANGELOG.md) and a git tag. `npm test` fails if the
 version in `package.json` has no changelog section.
 
-To release:
-1. Add a `## [x.y.z] - date` section at the top of `CHANGELOG.md` describing the changes, and commit it.
+To release, on an up-to-date `main`:
+1. Rename `## [Unreleased]` at the top of `CHANGELOG.md` to `## [x.y.z] - date`, and commit it.
 2. Run `npm version patch` (fixes), `npm version minor` (new features) or `npm version major`. This checks the
    changelog has a section for the new version, bumps `package.json`, commits and creates the `vx.y.z` tag.
-3. `npm run build`, then `git push --follow-tags` and attach both `.exe` files from `dist/` to a GitHub release
-   for the tag.
+3. `npm run build`, then `git push --follow-tags` and publish a GitHub release for the tag with both `.exe` files
+   from `dist/`:
+   ```
+   gh release create vx.y.z "dist/Clean Notes Joe x.y.z Portable.exe" "dist/Clean Notes Joe Sender x.y.z Portable.exe" --title "Clean Notes Joe x.y.z" --notes "See CHANGELOG.md"
+   ```
+4. Start a new empty `## [Unreleased]` section in `CHANGELOG.md` with the next branch's changes.
 
 ## Build
 Windows 10 / 11 (64-bit) for now:
