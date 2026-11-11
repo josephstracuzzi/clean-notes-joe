@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('notesAPI', {
     // Console commands
     openDeck: () => ipcRenderer.invoke('open-deck'),
     reloadDeck: () => ipcRenderer.send('reload-deck'),
+    clearDeck: () => ipcRenderer.send('clear-deck'),
     setSource: (source) => ipcRenderer.send('set-source', source),
     setNetwork: (changes) => ipcRenderer.send('set-network', changes),
     pair: (target) => ipcRenderer.send('pair', target),
@@ -39,6 +40,7 @@ contextBridge.exposeInMainWorld('notesAPI', {
     onState: listen('state'),
     onSettings: listen('settings'),
     onDeck: listen('deck'),
+    onDeckRefreshed: listen('deck-refreshed'),
     onLog: listen('log'),
     onScrollCommand: listen('scroll-command'),
     onScrollStatus: listen('scroll-status')

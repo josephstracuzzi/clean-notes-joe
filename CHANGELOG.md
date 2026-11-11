@@ -9,6 +9,46 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.7.4] - 2026-11-11
+
+### Changed
+- **Starts with nothing loaded**: the last deck is no longer reopened at launch, and the test deck no longer opens on the
+  first launch. A deck named on the command line (`npm start -- talk.pptx`) still opens.
+- **LOAD** starts in the folder of the last deck, or beside the test deck if there isn't one.
+
+## [0.7.3] - 2026-11-11
+
+### Fixed
+- **No old notes in LOCAL**: LOCAL showed the deck last opened in FILE (or the last PowerPoint deck) when PowerPoint was
+  closed. It now only shows what PowerPoint has open, like the Sender: the slide list and output empty when PowerPoint
+  closes, has no presentation open, is in Protected View or can't be reached. A busy moment (end-of-show black screen)
+  still keeps the last slide. Switching back to FILE reopens the last deck.
+- Starting with a deck named on the command line (`npm start -- talk.pptx`) opens it in FILE, whatever mode was last used.
+
+## [0.7.2] - 2026-11-11
+
+### Fixed
+- **No focus box**: shift-clicking the scroll bar under the preview (or any other control) no longer draws a box around it.
+
+## [0.7.1] - 2026-11-11
+
+### Changed
+- **You can see a refresh happen**: when the deck is read again (REFRESH, or the file saved in PowerPoint), the REFRESH
+  button flashes green and the line under the buttons says **✓ REFRESHED** with the time for a few seconds. Refreshes
+  from a save are now also listed in the CONSOLE. The output isn't affected.
+
+## [0.7.0] - 2026-11-11
+
+### Added
+- **CLEAR** next to LOAD closes the loaded file: the slide list and output go empty, Clean Notes Joe stops watching the
+  file, and it isn't reopened at the next launch. It asks first, since the output loses its notes. Only in FILE mode.
+
+## [0.6.1] - 2026-11-11
+
+### Fixed
+- **No white box at launch**: the console window (and the Sender's) flashed a white box for a moment as it opened. Both
+  now open at their final size and appear once they're drawn.
+
 ## [0.6.0] - 2026-11-11
 
 ### Changed

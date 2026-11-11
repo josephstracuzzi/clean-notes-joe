@@ -43,6 +43,12 @@
         .btn-top.is-blue { background: var(--blue); color: #fff; border-color: var(--blue); }
         .btn-top.is-blue:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
         .btn-top.is-green { background: #16a34a; color: #fff; border-color: #22c55e; }
+        /* REFRESH after a refresh: green, fading back over the few seconds the hint line shows it */
+        .btn-top.is-flash { animation: nj-refresh-flash 4s ease-out; }
+        @keyframes nj-refresh-flash {
+            0%, 30% { background: #16a34a; color: #fff; border-color: #22c55e; }
+        }
+        .format-hint.is-refreshed { color: #22c55e; }
         .btn-top.is-red { background: #7f1d1d; color: #fff; border-color: #dc2626; }
         .btn-top.is-amber { background: #78350f; color: #fff; border-color: var(--amber); }
         /* Divider between the source buttons (LOCAL / NETWORK / FILE) and the file actions (LOAD / REFRESH) */
@@ -126,7 +132,9 @@
         .tc-mid { font-size: 11px; color: #777; letter-spacing: 0.5px; text-align: center; line-height: 1.5; }
         .tc-mid b { color: #ccc; }
 
-        .scrub-slider { width: 100%; margin-top: 6px; accent-color: var(--green); cursor: pointer; height: 6px; }
+        .scrub-slider { width: 100%; margin-top: 6px; accent-color: var(--green); cursor: pointer; height: 6px; outline: none; }
+        /* No focus box on any control (shift-clicking counts as keyboard use, which shows one); text fields mark focus with their border */
+        :focus-visible { outline: none; }
         .scrub-slider:disabled { opacity: 0.3; cursor: default; }
         .transport-bar { display: flex; gap: 6px; margin-top: 6px; }
         .transport-bar button { padding: 5px 6px; font-size: 12px; letter-spacing: 0.5px; background: #222; color: #ccc; border: 1px solid #444; border-radius: 3px; flex: 1; transition: all 0.15s ease; }
@@ -253,6 +261,18 @@
         </div>
     </div>
 
+    <!-- Clear the loaded deck: asks first, since the output loses its notes -->
+    <div id="clear-modal-overlay" class="modal-overlay" onclick="hideModal('clear-modal-overlay')">
+        <div class="focus-modal" onclick="event.stopPropagation()">
+            <div style="font-size: 13px; margin-bottom: 12px; color: var(--blue); letter-spacing: 1px;">CLEAR THE LOADED FILE?</div>
+            <div id="clear-deck-name" style="font-size: 16px; margin-bottom: 18px; word-break: break-all;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="modal-btn" style="background: var(--blue); color: #fff; border-color: var(--blue);" onclick="hideModal('clear-modal-overlay'); api.clearDeck()">CLEAR</button>
+                <button class="modal-btn" onclick="hideModal('clear-modal-overlay')">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
     <div class="left-pane">
         <div class="playlist-header">
             <div class="header-title-container">
@@ -266,6 +286,7 @@
                     <button class="btn-top" id="btn-file" onclick="api.setSource('file')" title="SHOW THE NOTES OF THE LOADED .PPTX FILE">FILE</button>
                     <span class="header-sep"></span>
                     <button class="btn-top is-blue" id="btn-load" onclick="api.openDeck()" title="OPEN A .PPTX FILE">LOAD</button>
+                    <button class="btn-top" id="btn-clear" onclick="askClearDeck()" title="CLOSE THE LOADED FILE (IT ISN'T REOPENED NEXT TIME)">CLEAR</button>
                     <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO REFRESHES BY ITSELF WHEN SAVED)">REFRESH</button>
                 </div>
                 <div class="format-hint" id="deck-hint">ACCEPTED: PPTX</div>
@@ -383,6 +404,11 @@
         // ---------------------------------------------------------------- modals & console
         function showModal(id) { $(id).style.display = 'flex'; }
         function hideModal(id) { $(id).style.display = 'none'; }
+        function askClearDeck() {
+            if (!state || !state.deckFile || state.source !== 'file') return;
+            $('clear-deck-name').textContent = (state.deckName || '').toUpperCase();
+            showModal('clear-modal-overlay');
+        }
         function setConsoleError(on) { $('btn-console').classList.toggle('is-red', on); }
         function log(message, isError) {
             const out = $('console-log-output');
@@ -502,11 +528,27 @@
         function updateDeckHint() {
             const slides = deck.slides || [];
             const hint = $('deck-hint');
+            hint.classList.toggle('is-refreshed', !!refreshedAt);
             if (!slides.length) { hint.textContent = deck.name ? deck.name.toUpperCase() : 'ACCEPTED: PPTX'; hint.title = ''; return; }
             const total = slides.reduce((n, s) => n + words(s.notes), 0);
             const txt = `${deck.name.toUpperCase()} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES · ~${Math.max(1, Math.round(total / 140))} MIN SPOKEN`;
-            hint.textContent = txt;
+            const time = refreshedAt ? new Date(refreshedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+            hint.textContent = refreshedAt ? `✓ REFRESHED ${time} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES` : txt;
             hint.title = (deck.file || '') + '\n' + txt;
+        }
+
+        // A refresh (REFRESH, or the file saved in PowerPoint): REFRESH flashes green and the line under the
+        // buttons says when, for a few seconds
+        let refreshedAt = 0, refreshTimer = null;
+        function showRefreshed(at) {
+            refreshedAt = at;
+            const btn = $('btn-reload');
+            btn.classList.remove('is-flash');
+            void btn.offsetWidth; // restart the animation if it's still running
+            btn.classList.add('is-flash');
+            updateDeckHint();
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => { refreshedAt = 0; btn.classList.remove('is-flash'); updateDeckHint(); }, 4000);
         }
 
         let markedIndex = -1;
@@ -717,6 +759,7 @@
             lit($('btn-network'), network, rx.healthy ? 'ok' : netLost ? 'bad' : 'wait');
             lit($('btn-file'), s.source === 'file', s.deckFile ? 'ok' : 'wait');
             $('btn-reload').disabled = !s.deckFile || s.source !== 'file';
+            $('btn-clear').disabled = !s.deckFile || s.source !== 'file';
             renderNetwork();
 
             $('btn-output').classList.toggle('is-green', s.output.open);
@@ -791,7 +834,8 @@
             if (sourceChanged && !(deck.slides || []).length) renderDeck();
             renderState();
         });
-        api.onDeck(d => { deck = d; renderDeck(); });
+        api.onDeck(d => { if (d.file !== deck.file) refreshedAt = 0; deck = d; renderDeck(); });
+        api.onDeckRefreshed(r => showRefreshed(r.at));
         api.onSettings(s => { settings = s; renderSettings(); renderPreview(); });
 
         // ---------------------------------------------------------------- display settings

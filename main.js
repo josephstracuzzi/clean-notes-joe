@@ -126,7 +126,6 @@ function saveSettingsNow() {
         const data = {
             uiScale: uiScaleLevel,
             display: settings,
-            lastFile: deck.file,
             source: state.source,
             network: netConfig,
             outputOpen: !!outputWindow && !outputWindow.isDestroyed(),
@@ -278,6 +277,7 @@ function watchDeck(file) {
 function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
     try {
         const { slides } = readPresentation(file);
+        const refreshed = deck.file === file; // the same file read again: REFRESH, or saved in PowerPoint
         deck = { file, name: path.basename(file), slides, error: null };
         netConfig.lastLocalFile = file;
         if (!keepIndex) state.index = 0;
@@ -286,7 +286,9 @@ function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
         sendDeck();
         refreshCurrent();
         saveSettingsSoon();
-        if (!quiet) notifyOperator(`LOADED ${deck.name.toUpperCase()}: ${slides.length} SLIDES, ${slides.filter(s => s.notes).length} WITH NOTES`);
+        if (refreshed) send(mainWindow, 'deck-refreshed', { at: Date.now() });
+        if (refreshed && quiet) notifyOperator(`REFRESHED ${deck.name.toUpperCase()} (SAVED): ${slides.length} SLIDES, ${slides.filter(s => s.notes).length} WITH NOTES`);
+        if (!quiet) notifyOperator(`${refreshed ? 'REFRESHED' : 'LOADED'} ${deck.name.toUpperCase()}: ${slides.length} SLIDES, ${slides.filter(s => s.notes).length} WITH NOTES`);
         return true;
     } catch (err) {
         if (!quiet) {
@@ -294,6 +296,20 @@ function loadDeck(file, { keepIndex = false, quiet = false } = {}) {
         }
         return false;
     }
+}
+
+// Lets go of the loaded file: stops watching it and forgets it, so it isn't reopened at the next launch
+function clearDeck() {
+    if (state.source !== 'file' || !deck.file) return;
+    const name = deck.name;
+    deck = { file: null, name: '', slides: [], error: null };
+    netConfig.lastLocalFile = null;
+    state.index = 0;
+    watchDeck(null);
+    sendDeck();
+    refreshCurrent();
+    saveSettingsSoon();
+    notifyOperator(`CLEARED ${name.toUpperCase()}`);
 }
 
 function goTo(index) {
@@ -330,7 +346,8 @@ function onLiveUpdate(s) {
         liveTitle = typeof s.title === 'string' && s.title ? s.title : null;
         refreshCurrent();
     } else {
-        // Keep showing the last notes; just report what PowerPoint is doing
+        // Report what PowerPoint is doing. With PowerPoint closed, no presentation open, Protected View or
+        // PowerPoint out of reach, the old deck goes (as in the Sender); a busy moment keeps the last slide.
         const message = {
             'not-running': 'WAITING FOR POWERPOINT',
             unreachable: "POWERPOINT IS OPEN BUT CAN'T BE REACHED (IS ONE OF THEM RUNNING AS ADMINISTRATOR?)",
@@ -343,14 +360,30 @@ function onLiveUpdate(s) {
         if (s.state === 'busy' && state.live.status === 'ok') return; // end-of-show black screen etc.
         state.live = { status: s.state, message, name: state.live.name };
         if (s.state === 'error') notifyOperator(message);
-        broadcastState();
+        if (['not-running', 'no-presentation', 'protected', 'unreachable'].includes(s.state)) {
+            liveNotes = null;
+            liveTitle = null;
+            state.live.name = '';
+            state.index = 0;
+            if (deck.file || deck.name || deck.slides.length) emptyDeck();
+            refreshCurrent();
+        } else {
+            broadcastState();
+        }
     }
+}
+
+function emptyDeck() {
+    deck = { file: null, name: '', slides: [], error: null };
+    watchDeck(null);
+    sendDeck();
 }
 
 function setSource(source) {
     if (!SOURCES.includes(source)) return;
     if (source === 'live' && !LiveFollower.isSupported()) return;
-    const leavingNetwork = state.source === 'network' && source !== 'network';
+    const previous = state.source;
+    const leavingFollow = previous !== source && (previous === 'network' || previous === 'live');
     state.source = source;
     liveNotes = null;
     liveTitle = null;
@@ -363,15 +396,17 @@ function setSource(source) {
     }
     if (source === 'network') {
         // Only what the paired PC sends is shown: never a deck that was loaded on this PC
-        deck = { file: null, name: '', slides: [], error: null };
-        watchDeck(null);
-        sendDeck();
+        emptyDeck();
         startReceiver();
         applyReceiver();
     } else {
         stopReceiver();
-        if (leavingNetwork) {
-            // The slide list came from the other PC; go back to the last deck opened here
+        if (source === 'live') {
+            // Only what PowerPoint has open is shown: never the deck last opened in FILE
+            if (previous !== 'live') emptyDeck();
+            state.index = 0;
+        } else if (leavingFollow) {
+            // The slide list came from PowerPoint or the other PC; go back to the last deck opened here
             deck = { file: null, name: '', slides: [], error: null };
             if (netConfig.lastLocalFile && fs.existsSync(netConfig.lastLocalFile)) loadDeck(netConfig.lastLocalFile, { quiet: true });
             else sendDeck();
@@ -710,11 +745,19 @@ function createWindow() {
     if (savedFile.outputOpen !== false) createOutputWindow();
     watchDisplays();
 
+    // Created hidden at its final size and shown once the first frame is painted: showing it at the default
+    // size and then resizing left a white box in the window for a moment at launch
+    const workArea = primary.workArea;
     mainWindow = new BrowserWindow({
         title: 'CLEAN NOTES JOE ' + app.getVersion() + ' - OPERATOR',
         icon: APP_ICON,
         autoHideMenuBar: true,
         backgroundColor: '#121212',
+        show: false,
+        x: workArea.x,
+        y: workArea.y,
+        width: Math.min(1280, workArea.width),
+        height: Math.min(900, workArea.height),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -723,8 +766,12 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         }
     });
-    const workArea = primary.workArea;
-    mainWindow.setBounds({ x: workArea.x, y: workArea.y, width: Math.min(1280, workArea.width), height: Math.min(900, workArea.height) });
+    // Shown see-through first: Windows draws a window white until its first frame arrives
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.setOpacity(0);
+        mainWindow.show();
+        setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setOpacity(1); }, 120);
+    });
     applyUiScale(uiScaleLevel);
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
     // Chromium can bring back an older zoom on load, so the saved size is set again here
@@ -736,22 +783,21 @@ function createWindow() {
         app.quit();
     });
 
-    // Reopen the last deck (a file named on the command line wins)
+    // Starts with nothing loaded; only a deck named on the command line is opened (in FILE)
     const argFile = process.argv.slice(app.isPackaged ? 1 : 2).find(a => /\.pptx$/i.test(a) && fs.existsSync(a));
-    const firstLaunch = !fs.existsSync(settingsPath);
-    const startFile = argFile
-        || (savedFile.lastFile && fs.existsSync(savedFile.lastFile) ? savedFile.lastFile : null)
-        || (firstLaunch ? starterDeck() : null);
     mainWindow.webContents.once('did-finish-load', () => {
-        if (startFile) loadDeck(path.resolve(startFile), { quiet: !argFile });
+        if (argFile) {
+            state.source = 'file';
+            loadDeck(path.resolve(argFile));
+        }
         if (state.source !== 'file') setSource(state.source);
         registerGlobalKeys();
     });
 }
 
-// The bundled test deck, opened on a clean install. Packaged builds ship it as an extraResource; the
-// portable .exe unpacks to a new temp folder on every launch, so it is copied to userData first and
-// opened from there (as Playback Joe does with its starter clips).
+// The bundled test deck, where the LOAD dialog starts when there's no last deck. Packaged builds ship it as an
+// extraResource; the portable .exe unpacks to a new temp folder on every launch, so it is copied to userData
+// first and offered from there (as Playback Joe does with its starter clips).
 const STARTER_DECK = 'Clean Notes Joe Test Deck.pptx';
 function starterDeck() {
     const bundled = app.isPackaged
@@ -799,8 +845,11 @@ ipcMain.handle('get-initial', (event) => {
 
 ipcMain.handle('open-deck', async (event) => {
     if (!fromOperator(event)) return false;
+    // Starts in the folder of the last deck, or else beside the test deck
+    const last = netConfig.lastLocalFile && fs.existsSync(netConfig.lastLocalFile) ? netConfig.lastLocalFile : starterDeck();
     const result = await dialog.showOpenDialog(mainWindow, {
         title: 'Open PowerPoint deck',
+        defaultPath: last ? path.dirname(last) : undefined,
         properties: ['openFile'],
         filters: [{ name: 'PowerPoint', extensions: ['pptx'] }]
     });
@@ -818,6 +867,10 @@ ipcMain.on('set-ui-scale', (event, level) => {
 
 ipcMain.on('reload-deck', (event) => {
     if (fromOperator(event) && deck.file) loadDeck(deck.file, { keepIndex: true });
+});
+
+ipcMain.on('clear-deck', (event) => {
+    if (fromOperator(event)) clearDeck();
 });
 
 ipcMain.on('set-source', (event, source) => {

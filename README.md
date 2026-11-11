@@ -15,7 +15,7 @@ npm start               # Clean Notes Joe
 npm run start:sender    # Clean Notes Joe Sender
 ```
 
-`npm start -- talk.pptx` opens a deck straight away. Otherwise the last deck comes back.
+Clean Notes Joe always starts with nothing loaded. `npm start -- talk.pptx` opens a deck straight away in FILE.
 
 ## Two windows
 - **Operator console** on your main screen: the slide list, a PGM preview that matches the output exactly,
@@ -26,13 +26,16 @@ npm run start:sender    # Clean Notes Joe Sender
 
 ## Three sources
 The buttons top left pick where the notes come from: **LOCAL · NETWORK · FILE** (the active one is lit: green when
-working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx` and **REFRESH** reads it
-again.
+working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx`, **CLEAR** closes it (after
+asking; it isn't reopened at the next launch) and **REFRESH** reads it again (it also
+refreshes by itself when the file is saved). After a refresh, REFRESH flashes green and the line under the buttons
+says **✓ REFRESHED** with the time.
 
 - **FILE** shows the notes of the deck opened with **LOAD**. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn
   (most clickers) or by clicking a slide. Save the deck in PowerPoint and it reloads by itself.
 - **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor.
-  Notes come straight from PowerPoint, so edits show up before you save.
+  Notes come straight from PowerPoint, so edits show up before you save. Only what PowerPoint has open is shown:
+  with PowerPoint closed (or no presentation open) the slide list and output are empty.
   - Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View*
     if it would take over the screen you use for notes.
 
@@ -67,7 +70,7 @@ show network.
 One way only: a notes PC can't change slides or control the PowerPoint PC. Uses TCP port 47820 and UDP port 47821.
 
 ## Test deck
-`test_decks/Clean Notes Joe Test Deck.pptx` opens on the first launch. Its 10 slides cover very short notes,
+`test_decks/Clean Notes Joe Test Deck.pptx` is where the LOAD dialog starts until you've opened a deck. Its 10 slides cover very short notes,
 several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and
 blank lines, a hidden slide, special characters and other scripts, and all-caps notes. Each slide says on it what
 it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
@@ -81,7 +84,7 @@ it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
 | Screen | **header bar** with slide number, slide timer and clock (HEADER SIZE 3 to 20% of the screen), centre vertically, **mirror** for teleprompter glass |
 
 Sizes are in points at 1080p and scale with the output, so text looks the same on any screen.
-Settings and the last deck are remembered in `%APPDATA%\clean-notes-joe`.
+Settings are remembered in `%APPDATA%\clean-notes-joe` (and the last deck's folder, where LOAD starts).
 
 ## Keys
 | Key | Action |

@@ -213,6 +213,17 @@ function statusLine() {
     return (count ? `SENDING TO ${count}` : 'READY, NO NOTES PCS CONNECTED') + ' · ' + pptText;
 }
 
+// The window's first appearance at launch; later hides (to the tray) aren't undone by it
+let shownOnce = false;
+function firstShow() {
+    if (shownOnce || !win || win.isDestroyed()) return;
+    shownOnce = true;
+    // Shown see-through first: Windows draws a window white until its first frame arrives
+    win.setOpacity(0);
+    win.show();
+    setTimeout(() => { if (!win.isDestroyed()) win.setOpacity(1); }, 120);
+}
+
 function showWindow() {
     if (!win || win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();
@@ -258,11 +269,16 @@ function updateTray() {
 // Window
 // ---------------------------------------------------------------------------
 function createWindow() {
+    // Created hidden in place and shown once it is drawn at its fitted size, so no white box shows at launch
+    const workArea = screen.getPrimaryDisplay().workArea;
     win = new BrowserWindow({
         title: 'CLEAN NOTES JOE SENDER ' + VERSION,
         icon: path.join(__dirname, 'icon.png'),
         autoHideMenuBar: true,
         backgroundColor: '#121212',
+        show: false,
+        x: workArea.x + 40,
+        y: workArea.y + 40,
         // Started compact, then fitted exactly to the content by the page (fit-window)
         width: 480,
         height: 600,
@@ -275,8 +291,8 @@ function createWindow() {
             preload: path.join(__dirname, 'sender-preload.js')
         }
     });
-    const workArea = screen.getPrimaryDisplay().workArea;
-    win.setPosition(workArea.x + 40, workArea.y + 40);
+    // Shown once the page has fitted the window to its content (fit-window), or after 3 seconds at the latest
+    win.once('ready-to-show', () => setTimeout(firstShow, 3000));
     win.loadFile(path.join(__dirname, 'sender.html'));
     // Minimize: hide to the tray (where there is one), so the window can't be closed by accident from the taskbar
     win.on('minimize', (event) => {
@@ -338,6 +354,8 @@ ipcMain.on('fit-window', (event, width, height) => {
     const [outerW, outerH] = win.getSize();
     const [innerW, innerH] = win.getContentSize();
     win.setMinimumSize(w + outerW - innerW, h + outerH - innerH);
+    // Give the page a moment to redraw at the new size before the window first appears
+    setTimeout(firstShow, 100);
 });
 
 ipcMain.on('set-config', (event, changes) => {
