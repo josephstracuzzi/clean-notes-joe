@@ -172,6 +172,7 @@
                     c.appendChild(p);
                 }
                 c.dataset.text = shown;
+                this.words = empty ? 0 : shown.split(/\s+/).filter(Boolean).length;
             }
             c.classList.toggle('nj-empty', empty);
 
@@ -278,13 +279,16 @@
         scrollToFraction(f) { this.setOffset(f * this.max); }
         restart() { this.shownAt = performance.now(); this.setOffset(0); }
 
-        // Auto-scroll step (only the window in charge of scrolling calls this)
+        // Auto-scroll step (only the window in charge of scrolling calls this). Paced to reading speed: the
+        // time to read every word at scrollWpm, less the start delay, is spread evenly over the scroll, so the
+        // end comes into view as the last word is reached and the text never runs ahead of the reader.
         tick(dt) {
             const s = this.settings, st = this.state;
             if (!s || !st || !s.autoScroll || st.paused || this.max <= 0) return false;
             if (this.offset >= this.max) return false;
             if (performance.now() - this.shownAt < s.scrollDelay * 1000) return false;
-            this.setOffset(this.offset + s.scrollSpeed * this.unit() * dt);
+            const readSeconds = (this.words || 0) * 60 / s.scrollWpm;
+            this.setOffset(this.offset + this.max / Math.max(5, readSeconds - s.scrollDelay) * dt);
             return true;
         }
 

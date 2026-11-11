@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
     fitMin: 36,
     fitMax: 96,
     autoScroll: true,
-    scrollSpeed: 40,       // points per second at 1080p
+    scrollWpm: 140,        // reading pace in words per minute; the scroll ends as the last word is reached
     scrollDelay: 3,        // seconds after a slide change before scrolling starts
     showSlideNumber: true,
     showClock: true,
@@ -82,7 +82,7 @@ const SETTING_RULES = {
     fitMin: v => Number.isFinite(v) && v >= 10 && v <= 300,
     fitMax: v => Number.isFinite(v) && v >= 10 && v <= 300,
     autoScroll: v => typeof v === 'boolean',
-    scrollSpeed: v => Number.isFinite(v) && v >= 2 && v <= 400,
+    scrollWpm: v => Number.isFinite(v) && v >= 40 && v <= 400,
     scrollDelay: v => Number.isFinite(v) && v >= 0 && v <= 60,
     showSlideNumber: v => typeof v === 'boolean',
     showClock: v => typeof v === 'boolean',

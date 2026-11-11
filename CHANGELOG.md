@@ -1,17 +1,21 @@
 # Changelog
 
 All notable changes to Clean Notes Joe. The version number lives in `package.json` and is shown in the
-console's header badge and both window titles. Each release gets a section here and a matching git tag
-(`v0.1.0`, ...). See **Versioning** in the README for how to cut a release.
+console's header badge and both window titles. Each version gets a section here; versions published as
+GitHub releases also get a git tag (`v0.1.0`, ...). See **Branches and versions** in the README.
 
 Versions follow `MAJOR.MINOR.PATCH`:
 - **PATCH** for fixes that don't change how the app is used
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
-## [Unreleased]
+## [0.6.0] - 2026-11-11
 
 ### Changed
+- **Auto-scroll follows reading speed.** SPEED (points per second) is replaced by **READING SPEED** in words per minute,
+  140 by default. Each slide's scroll is spread over the time it takes to read its notes at that pace, so the last line
+  comes into view as you reach the last word: the text never runs ahead of you. The old default scrolled long notes at
+  about 800 words a minute. A saved SPEED is not carried over.
 - **HEADER SIZE** goes up to 20% of the screen (was 12%). If the slide number, timer and clock don't fit side by side, the
   header text shrinks to fit instead of being cut off; the timer stays centred.
 - The header shows the slide number as **4 / 10** (the word SLIDE is gone, to save space).

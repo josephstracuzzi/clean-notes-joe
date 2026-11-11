@@ -839,7 +839,7 @@
                 sliderRow('MAX SIZE', 'fitMax', 12, 300, 1, v => v + ' PT', s => !s.autoFit),
                 sliderRow('FIXED SIZE', 'fontSize', 12, 300, 1, v => v + ' PT', s => s.autoFit),
                 badgeRow('AUTO-SCROLL', [['SCROLL WHEN TEXT DOESN\'T FIT', 'autoScroll']]),
-                sliderRow('SPEED', 'scrollSpeed', 5, 200, 1, v => v + ' PT/S', s => !s.autoScroll),
+                sliderRow('READING SPEED', 'scrollWpm', 60, 300, 5, v => v + ' WPM', s => !s.autoScroll),
                 sliderRow('START DELAY', 'scrollDelay', 0, 20, 0.5, v => v.toFixed(1) + ' S', s => !s.autoScroll)
             ]],
             ['SCREEN', [
