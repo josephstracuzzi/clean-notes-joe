@@ -1,7 +1,8 @@
 // ============================================================================
-// Clean Notes Joe - .pptx reader
+// Clean Notes Joe - .pptx and .odp reader
 // Reads slide titles and speaker notes straight from the file, with no dependencies:
-// a .pptx is a zip of XML files, and Node's zlib can inflate the entries.
+// a .pptx (PowerPoint) or .odp (LibreOffice Impress) is a zip of XML files, and Node's zlib can
+// inflate the entries.
 // ============================================================================
 
 const fs = require('fs');
@@ -15,7 +16,7 @@ function readZip(buf) {
     for (let i = buf.length - 22; i >= Math.max(0, buf.length - 22 - 65535); i--) {
         if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
     }
-    if (eocd < 0) throw new Error('NOT A POWERPOINT (.PPTX) FILE');
+    if (eocd < 0) throw new Error('NOT A POWERPOINT (.PPTX) OR LIBREOFFICE (.ODP) FILE');
     const count = buf.readUInt16LE(eocd + 10);
     let ptr = buf.readUInt32LE(eocd + 16);
     const entries = new Map();
@@ -122,12 +123,60 @@ function titleFromXml(xml) {
     return sp ? bodyText(sp.xml).replace(/\s+/g, ' ').trim() : '';
 }
 
+// ---- LibreOffice Impress (.odp) ----
+// Text of an ODF text box: paragraphs (<text:p>, <text:h>, also inside lists) separated by \n; a soft line
+// break (<text:line-break/>, Shift+Enter) is U+2028, as in bodyText
+function odfText(xml) {
+    const paras = [];
+    const paraRe = /<text:(p|h)\b[^>]*\/>|<text:(p|h)\b[^>]*>([\s\S]*?)<\/text:\2>/g;
+    let m;
+    while ((m = paraRe.exec(xml))) {
+        const inner = (m[3] || '')
+            .replace(/<text:line-break\s*\/>/g, ' ')
+            .replace(/<text:tab\s*\/>/g, '\t')
+            .replace(/<text:s\b[^>]*\/>/g, tag => ' '.repeat(Math.max(1, parseInt(attr(tag, 'text:c') || '1', 10))))
+            .replace(/<[^>]+>/g, '');
+        paras.push(decodeEntities(inner));
+    }
+    return paras.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// The text box of the frame with that presentation:class ('title', 'notes') in a piece of a page
+function odfFrameText(xml, cls) {
+    for (const frame of xml.match(/<draw:frame\b[\s\S]*?<\/draw:frame>/g) || []) {
+        if (attr(frame.match(/<draw:frame\b[^>]*>/)[0], 'presentation:class') === cls) return odfText(frame);
+    }
+    return '';
+}
+
+function readOdp(zip) {
+    const xml = zip.text('content.xml');
+    if (!xml) throw new Error('NOT A LIBREOFFICE (.ODP) FILE');
+    // Hidden slides: their page style says presentation:visibility="hidden"
+    const hiddenStyles = new Set();
+    for (const st of xml.match(/<style:style\b[^>]*style:family="drawing-page"[^>]*>[\s\S]*?<\/style:style>/g) || []) {
+        if (/presentation:visibility="hidden"/.test(st)) hiddenStyles.add(attr(st.match(/<style:style\b[^>]*>/)[0], 'style:name'));
+    }
+    const slides = [];
+    for (const page of xml.match(/<draw:page\b[\s\S]*?<\/draw:page>/g) || []) {
+        const pageTag = page.match(/<draw:page\b[^>]*>/)[0];
+        const notesPart = (page.match(/<presentation:notes\b[\s\S]*?<\/presentation:notes>/) || [''])[0];
+        slides.push({
+            title: odfFrameText(page.replace(notesPart, ''), 'title').replace(/\s+/g, ' ').trim(),
+            notes: odfFrameText(notesPart, 'notes'),
+            hidden: hiddenStyles.has(attr(pageTag, 'draw:style-name'))
+        });
+    }
+    return { slides };
+}
+
 // Returns { slides: [{ title, notes, hidden }] } in presentation order
 function readPresentation(filePath) {
     const zip = readZip(fs.readFileSync(filePath));
+    if ((zip.text('mimetype') || '').trim() === 'application/vnd.oasis.opendocument.presentation') return readOdp(zip);
     const presPath = 'ppt/presentation.xml';
     const presXml = zip.text(presPath);
-    if (!presXml) throw new Error('NOT A POWERPOINT (.PPTX) FILE');
+    if (!presXml) throw new Error('NOT A POWERPOINT (.PPTX) OR LIBREOFFICE (.ODP) FILE');
     const presRels = readRels(zip, presPath);
     const slides = [];
     for (const tag of presXml.match(/<p:sldId\b[^>]*>/g) || []) {

@@ -1,4 +1,5 @@
 # Builds test/fixture.pptx (needs python-pptx). The committed fixture is what the tests read.
+# test/fixture.odp is the same deck saved by LibreOffice: soffice --headless --convert-to odp fixture.pptx
 from pptx import Presentation
 from pptx.util import Pt
 prs = Presentation()

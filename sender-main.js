@@ -65,7 +65,7 @@ saveConfig(); // keeps the machine id stable from the first launch
 // ---------------------------------------------------------------------------
 const ppt = {
     status: 'not-running',   // ok | not-running | no-presentation | busy | error | unsupported
-    message: 'WAITING FOR POWERPOINT',
+    message: 'WAITING FOR POWERPOINT OR LIBREOFFICE',
     name: '', file: null, index: 0, count: 0, title: '', notes: ''
 };
 let deck = { file: null, name: '', slides: [] };
@@ -96,9 +96,9 @@ function clearDeck(name) {
 }
 
 const MESSAGES = {
-    'not-running': 'WAITING FOR POWERPOINT',
+    'not-running': 'WAITING FOR POWERPOINT OR LIBREOFFICE',
     unreachable: "CAN'T REACH POWERPOINT",
-    'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
+    'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT OR LIBREOFFICE',
     protected: 'PROTECTED VIEW: CLICK ENABLE EDITING',
     busy: 'POWERPOINT IS BUSY',
     unsupported: 'NEEDS POWERPOINT ON WINDOWS',
@@ -106,9 +106,9 @@ const MESSAGES = {
 };
 // What to do about it, shown in the big area under the bar
 const DETAILS = {
-    'not-running': 'OPEN YOUR PRESENTATION IN POWERPOINT',
+    'not-running': 'OPEN YOUR PRESENTATION IN POWERPOINT OR LIBREOFFICE',
     unreachable: "POWERPOINT IS OPEN BUT THIS APP CAN'T REACH IT. THIS HAPPENS WHEN ONE OF THEM RUNS AS ADMINISTRATOR AND THE OTHER DOESN'T: START BOTH NORMALLY (OR BOTH AS ADMINISTRATOR).",
-    'no-presentation': 'OPEN YOUR PRESENTATION IN POWERPOINT',
+    'no-presentation': 'OPEN YOUR PRESENTATION IN POWERPOINT OR LIBREOFFICE',
     protected: 'POWERPOINT OPENED THE DECK IN PROTECTED VIEW (IT CAME FROM THE INTERNET, EMAIL OR A ZIP). CLICK ENABLE EDITING IN THE YELLOW BAR IN POWERPOINT. TO STOP IT HAPPENING WITH THIS FILE: RIGHT-CLICK THE FILE, PROPERTIES, TICK UNBLOCK, OK.',
     busy: 'CLOSE ANY DIALOG OPEN IN POWERPOINT',
     unsupported: 'CLEAN NOTES JOE SENDER NEEDS MICROSOFT POWERPOINT ON WINDOWS'
@@ -117,7 +117,7 @@ const DETAILS = {
 function onPowerPoint(s) {
     if (s.state === 'ok') {
         if (s.file !== deck.file) {
-            const readable = s.file && /\.pptx$/i.test(s.file) && fs.existsSync(s.file);
+            const readable = s.file && /\.(pptx|odp)$/i.test(s.file) && fs.existsSync(s.file);
             if (readable) loadDeck(s.file); else clearDeck(s.name);
         }
         const slide = deck.slides[s.index - 1];
@@ -132,7 +132,7 @@ function onPowerPoint(s) {
         // End-of-show black screen or a dialog open: keep sending the last slide
         if (s.state === 'busy' && ppt.status === 'ok') return;
         ppt.status = s.state;
-        ppt.message = MESSAGES[s.state] || 'WAITING FOR POWERPOINT';
+        ppt.message = MESSAGES[s.state] || 'WAITING FOR POWERPOINT OR LIBREOFFICE';
         ppt.detail = s.message || DETAILS[s.state] || '';
         // No presentation to follow any more: stop sending the old slide list and notes, so a notes PC
         // never shows a previous deck. (A helper restart or a busy moment keeps the last slide.)

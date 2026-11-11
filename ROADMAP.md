@@ -6,8 +6,6 @@ Ideas agreed for later, in no particular order. When one is built, it moves to C
   their defaults without resetting everything else.
 - **Per-deck settings**: a deck reopens with the size settings it had last time (for example after a rehearsal),
   so each presentation keeps its own sizing.
-- **LibreOffice support**: open LibreOffice Impress files (`.odp`) in file mode, and follow a running LibreOffice
-  Impress live, in Clean Notes Joe and in the Sender. Impress can already save as `.pptx`, which works today.
 - **Clearer source indicator**: make it obvious at a glance whether the notes come from **NETWORK** (and which PC),
   **LOCAL** (PowerPoint on this PC) or **FILE**, shown in the cuelist (slide list) area on the left: a
   prominent source label in its own colour above or around the slide list, rather than relying on the small badge

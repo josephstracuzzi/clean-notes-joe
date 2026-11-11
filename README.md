@@ -2,7 +2,7 @@
 Designed by Joseph Stracuzzi
 
 **Your PowerPoint speaker notes, big and clean on a second screen.** Load a deck, or let Clean Notes Joe
-follow PowerPoint. The notes for the current slide fill a fullscreen display, sized to fit, and
+follow PowerPoint (or LibreOffice Impress). The notes for the current slide fill a fullscreen display, sized to fit, and
 scroll gently when there's too much to fit. A companion to [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
 
 ---
@@ -15,7 +15,7 @@ npm start               # Clean Notes Joe
 npm run start:sender    # Clean Notes Joe Sender
 ```
 
-Clean Notes Joe always starts with nothing loaded. `npm start -- talk.pptx` opens a deck straight away in FILE.
+Clean Notes Joe always starts with nothing loaded. `npm start -- talk.pptx` (or `.odp`) opens a deck straight away in FILE.
 
 ## Two windows
 - **Operator console** on your main screen: the slide list, a PGM preview that matches the output exactly,
@@ -26,7 +26,7 @@ Clean Notes Joe always starts with nothing loaded. `npm start -- talk.pptx` open
 
 ## Three sources
 The buttons top left pick where the notes come from: **LOCAL · NETWORK · FILE** (the active one is lit: green when
-working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx`, **CLEAR** closes it (after
+working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx` (PowerPoint) or `.odp` (LibreOffice Impress), **CLEAR** closes it (after
 asking; it isn't reopened at the next launch) and **REFRESH** reads it again (it also
 refreshes by itself when the file is saved). After a refresh, REFRESH flashes green and the line under the buttons
 says **✓ REFRESHED** with the time.
@@ -38,14 +38,16 @@ says **✓ REFRESHED** with the time.
 - **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor.
   Notes come straight from PowerPoint, so edits show up before you save. Only what PowerPoint has open is shown:
   with PowerPoint closed (or no presentation open) the slide list and output are empty.
+  With no presentation open in PowerPoint, **LibreOffice Impress** is followed the same way (slideshow or editor,
+  notes straight from Impress). Clean Notes Joe never starts LibreOffice itself.
   - Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View*
     if it would take over the screen you use for notes.
 
 ## Network: PowerPoint on one PC, notes on another
 Two apps, built from this project with the same version number:
 - **Clean Notes Joe** on each notes PC (this app).
-- **Clean Notes Joe Sender** on each PowerPoint PC: a small window that follows PowerPoint and sends the current
-  slide and notes. It starts sending as soon as it opens; there's nothing to switch on.
+- **Clean Notes Joe Sender** on each PowerPoint PC: a small window that follows PowerPoint (or LibreOffice Impress,
+  as LOCAL does) and sends the current slide and notes. It starts sending as soon as it opens; there's nothing to switch on.
 
 Each notes PC is paired with one PowerPoint PC. With main and backup machines, pair the main notes PC with the main
 PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no automatic switching.
@@ -152,9 +154,9 @@ The app is portable (nothing to install) and not code-signed, so on first launch
 | `index.html` | operator console |
 | `output.html` | fullscreen notes output (runs the auto-scroll) |
 | `notes-view.js` | the notes renderer, shared by the output and the PGM preview |
-| `pptx.js` | reads slide titles and notes from a `.pptx` (no dependencies) |
+| `pptx.js` | reads slide titles, notes and hidden slides from a `.pptx` or `.odp` (no dependencies) |
 | `network.js` | network sync: senders announce themselves and serve their notes; a receiver follows one paired sender |
 | `sender-main.js`, `sender-preload.js`, `sender.html` | Clean Notes Joe Sender (built with `electron-builder.sender.json`) |
-| `live.js` | follows PowerPoint through a hidden Windows PowerShell process (COM). Also has an untested macOS path for later |
-| `test/` | `npm test`: the `.pptx` reader, network sync (real sockets) and the changelog check |
+| `live.js` | follows PowerPoint, or LibreOffice Impress, through a hidden Windows PowerShell process (COM). Also has an untested macOS path for PowerPoint |
+| `test/` | `npm test`: the `.pptx` and `.odp` reader, network sync (real sockets) and the changelog check |
 | `test_decks/` | the test deck (bundled with the app) |

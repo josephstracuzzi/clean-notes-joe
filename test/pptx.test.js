@@ -13,4 +13,8 @@ assert.strictEqual(slides[3].hidden, true);
 assert.strictEqual(slides[0].hidden, false);
 assert.strictEqual(slides[4].notes, 'Café — “quotes” ✓ 日本語');
 assert.throws(() => readPresentation(__filename), /PPTX/);
-console.log('pptx reader: all tests passed');
+
+// The same deck saved by LibreOffice Impress as .odp (fixture.odp) reads the same
+const odp = readPresentation(path.join(__dirname, 'fixture.odp')).slides;
+assert.deepStrictEqual(odp, slides);
+console.log('pptx and odp reader: all tests passed');

@@ -91,7 +91,7 @@
             <span class="slide-counter" id="slide-counter">-- / --</span>
             <span class="slide-title" id="slide-title"></span>
         </div>
-        <div class="notes-preview none" id="notes">OPEN YOUR PRESENTATION IN POWERPOINT</div>
+        <div class="notes-preview none" id="notes">OPEN YOUR PRESENTATION IN POWERPOINT OR LIBREOFFICE</div>
     </div>
 
     <div class="panel">
@@ -170,7 +170,7 @@
             if (ok && p.notes) { notes.className = 'notes-preview'; notes.textContent = p.notes.replace(/\u2028/g, '\n'); }
             else {
                 notes.className = 'notes-preview none';
-                notes.textContent = ok ? 'NO SPEAKER NOTES ON THIS SLIDE' : (p.detail || 'OPEN YOUR PRESENTATION IN POWERPOINT');
+                notes.textContent = ok ? 'NO SPEAKER NOTES ON THIS SLIDE' : (p.detail || 'OPEN YOUR PRESENTATION IN POWERPOINT OR LIBREOFFICE');
                 if (!ok && s.diag) notes.appendChild(diagLine(s.diag));
             }
 

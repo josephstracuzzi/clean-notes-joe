@@ -351,9 +351,9 @@ function onLiveUpdate(s) {
     if (s.state === 'ok') {
         state.live = { status: 'ok', message: '', name: s.name };
         if (s.file !== deck.file) {
-            // PowerPoint switched to another presentation. An unsaved or non-.pptx one has no file to
+            // PowerPoint switched to another presentation. An unsaved or non-.pptx/.odp one has no file to
             // read, so the slide list stays empty (on Windows its notes still come from PowerPoint).
-            const readable = s.file && /\.pptx$/i.test(s.file) && fs.existsSync(s.file);
+            const readable = s.file && /\.(pptx|odp)$/i.test(s.file) && fs.existsSync(s.file);
             if (!readable || !loadDeck(s.file, { keepIndex: true, quiet: true })) {
                 deck = { file: s.file || null, name: s.name, slides: [], error: null };
                 watchDeck(null);
@@ -369,14 +369,14 @@ function onLiveUpdate(s) {
         // Report what PowerPoint is doing. With PowerPoint closed, no presentation open, Protected View or
         // PowerPoint out of reach, the old deck goes (as in the Sender); a busy moment keeps the last slide.
         const message = {
-            'not-running': 'WAITING FOR POWERPOINT',
+            'not-running': 'WAITING FOR POWERPOINT OR LIBREOFFICE',
             unreachable: "POWERPOINT IS OPEN BUT CAN'T BE REACHED (IS ONE OF THEM RUNNING AS ADMINISTRATOR?)",
-            'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT',
+            'no-presentation': 'NO PRESENTATION OPEN IN POWERPOINT OR LIBREOFFICE',
             protected: 'PROTECTED VIEW: CLICK ENABLE EDITING IN POWERPOINT',
-            busy: state.live.status === 'ok' ? 'POWERPOINT IS BUSY' : 'WAITING FOR POWERPOINT',
+            busy: state.live.status === 'ok' ? 'POWERPOINT IS BUSY' : 'WAITING FOR POWERPOINT OR LIBREOFFICE',
             unsupported: s.message || 'LOCAL NEEDS POWERPOINT ON WINDOWS',
             error: s.message || 'POWERPOINT CONNECTION ERROR'
-        }[s.state] || 'WAITING FOR POWERPOINT';
+        }[s.state] || 'WAITING FOR POWERPOINT OR LIBREOFFICE';
         if (s.state === 'busy' && state.live.status === 'ok') return; // end-of-show black screen etc.
         state.live = { status: s.state, message, name: state.live.name };
         if (s.state === 'error') notifyOperator(message);
@@ -408,7 +408,7 @@ function setSource(source) {
     liveNotes = null;
     liveTitle = null;
     if (source === 'live') {
-        state.live = { status: 'not-running', message: 'WAITING FOR POWERPOINT', name: '' };
+        state.live = { status: 'not-running', message: 'WAITING FOR POWERPOINT OR LIBREOFFICE', name: '' };
         live.start();
     } else {
         live.stop();
@@ -804,7 +804,7 @@ function createWindow() {
     });
 
     // Starts with nothing loaded; only a deck named on the command line is opened (in FILE)
-    const argFile = process.argv.slice(app.isPackaged ? 1 : 2).find(a => /\.pptx$/i.test(a) && fs.existsSync(a));
+    const argFile = process.argv.slice(app.isPackaged ? 1 : 2).find(a => /\.(pptx|odp)$/i.test(a) && fs.existsSync(a));
     mainWindow.webContents.once('did-finish-load', () => {
         if (argFile) {
             state.source = 'file';
@@ -871,7 +871,7 @@ ipcMain.handle('open-deck', async (event) => {
         title: 'Open PowerPoint deck',
         defaultPath: last ? path.dirname(last) : undefined,
         properties: ['openFile'],
-        filters: [{ name: 'PowerPoint', extensions: ['pptx'] }]
+        filters: [{ name: 'PowerPoint or LibreOffice Impress', extensions: ['pptx', 'odp'] }]
     });
     if (result.canceled || !result.filePaths.length) return false;
     if (state.source !== 'file') setSource('file');

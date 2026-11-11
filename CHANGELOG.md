@@ -9,6 +9,18 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.9.0] - 2026-11-11
+
+### Added
+- **LibreOffice Impress support.**
+  - **FILE** opens `.odp` files as well as `.pptx`: slide titles, notes (with soft line breaks) and hidden slides, and
+    it refreshes when the file is saved.
+  - **LOCAL** and the **Sender** follow LibreOffice Impress when PowerPoint has no presentation open: the slide in the
+    slideshow or the one selected in the editor, with notes straight from Impress (edits show before you save). Hidden
+    slides are skipped in the slideshow, as Impress does. LibreOffice is only looked at once it's running, so Clean
+    Notes Joe never starts it.
+  - Messages say **POWERPOINT OR LIBREOFFICE** where they used to say PowerPoint.
+
 ## [0.8.1] - 2026-11-11
 
 ### Fixed

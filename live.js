@@ -3,7 +3,8 @@
 // Reports which slide PowerPoint is on (slideshow or editor) and that slide's notes.
 //   Windows: a hidden Windows PowerShell process talks to PowerPoint over COM and prints a JSON
 //            line whenever something changes. Notes come straight from PowerPoint, so unsaved
-//            edits show up too.
+//            edits show up too. With no presentation open in PowerPoint, LibreOffice Impress is
+//            followed the same way (through its own COM bridge) when it's running.
 //   macOS:   AppleScript is asked for the open file and slide number twice a second; the notes are
 //            read from the saved file (save in PowerPoint to see note edits).
 // Each report is passed to onUpdate(state):
@@ -51,6 +52,52 @@ function Get-PowerPoint {
         $script:unreachable = $true
         $script:nextFallback = [DateTime]::Now.AddSeconds(5)
         return $null
+    }
+}
+
+# LibreOffice Impress, through its COM bridge (com.sun.star.ServiceManager). Its methods are called by name
+# (PowerShell can't bind them directly). It's only asked once LibreOffice is running: asking would start one.
+# Returns a JSON line, or $null when LibreOffice isn't running.
+function U($obj, [string]$name) { [System.__ComObject].InvokeMember($name, [Reflection.BindingFlags]::InvokeMethod, $null, $obj, [object[]]$args) }
+function Read-Impress {
+    if (-not (Get-Process -Name soffice.bin -ErrorAction SilentlyContinue)) { return $null }
+    try { $sm = New-Object -ComObject com.sun.star.ServiceManager; $desk = U $sm createInstance 'com.sun.star.frame.Desktop' }
+    catch { return '{"state":"busy","app":"libreoffice"}' } # starting up or closing
+    try {
+        # The presentation in front, or else any open one
+        $doc = U $desk getCurrentComponent
+        if (-not $doc -or -not (U $doc supportsService 'com.sun.star.presentation.PresentationDocument')) {
+            $doc = $null
+            $all = U (U $desk getComponents) createEnumeration
+            while (-not $doc -and (U $all hasMoreElements)) {
+                $c = U $all nextElement
+                if (U $c supportsService 'com.sun.star.presentation.PresentationDocument') { $doc = $c }
+            }
+        }
+        if (-not $doc) { return '{"state":"no-presentation","app":"libreoffice"}' }
+        $show = U $doc getPresentation
+        if (U $show isRunning) { $slide = U (U $show getController) getCurrentSlide; $mode = 'show' }
+        else { $slide = U (U $doc getCurrentController) getCurrentPage; $mode = 'edit' }
+        # The page number counts hidden slides too (the slideshow's own index skips them)
+        $idx = U $slide getPropertyValue 'Number'
+        $notes = ''
+        $np = U $slide getNotesPage
+        for ($i = 0; $i -lt (U $np getCount); $i++) {
+            $s = U $np getByIndex $i
+            if ((U $s getShapeType) -eq 'com.sun.star.presentation.NotesShape') { $notes = U $s getString; break }
+        }
+        $title = ''
+        for ($i = 0; $i -lt (U $slide getCount); $i++) {
+            $s = U $slide getByIndex $i
+            if ((U $s getShapeType) -eq 'com.sun.star.presentation.TitleTextShape') { $title = U $s getString; break }
+        }
+        $url = U $doc getURL
+        $file = ''; $name = 'UNTITLED'
+        if ($url) { $file = ([Uri]$url).LocalPath; $name = [IO.Path]::GetFileName($file) }
+        return (@{ state = 'ok'; app = 'libreoffice'; mode = $mode; file = $file; name = $name; index = $idx; count = (U (U $doc getDrawPages) getCount); title = $title; notes = $notes } | ConvertTo-Json -Compress)
+    } catch {
+        # Starting or ending the show, a dialog open in LibreOffice...
+        return '{"state":"busy","app":"libreoffice"}'
     }
 }
 
@@ -103,8 +150,13 @@ while ($true) {
             $out = '{"state":"busy"}'
         }
     }
-    # Let go of PowerPoint after every look: held references can keep PowerPoint running invisibly after it is closed
-    $app = $null; $pres = $null; $w = $null; $win = $null; $slide = $null; $shp = $null
+    # No presentation in PowerPoint (or no PowerPoint): follow LibreOffice Impress instead, if it's running
+    if ($out -match '"state":"(not-running|no-presentation|unreachable)"') {
+        $lo = Read-Impress
+        if ($lo -and ($lo -notmatch '"state":"no-presentation"' -or $out -match '"state":"not-running"')) { $out = $lo }
+    }
+    # Let go of PowerPoint and LibreOffice after every look: held references can keep them running invisibly after they are closed
+    $app = $null; $pres = $null; $w = $null; $win = $null; $slide = $null; $shp = $null; $lo = $null
     [GC]::Collect()
     [GC]::WaitForPendingFinalizers()
     if ($out -ne $last) { [Console]::Out.WriteLine($out); [Console]::Out.Flush(); $last = $out }
@@ -211,7 +263,7 @@ class LiveFollower {
                         continue;
                     }
                     if (s.state === 'not-running' && typeof s.proc === 'boolean') this.setDiag({ powerpointProcess: s.proc });
-                    else if (s.state !== 'not-running') this.setDiag({ powerpointProcess: ['unreachable', 'ok', 'no-presentation', 'busy', 'protected'].includes(s.state) ? true : this.diag.powerpointProcess });
+                    else if (s.state !== 'not-running' && s.app !== 'libreoffice') this.setDiag({ powerpointProcess: ['unreachable', 'ok', 'no-presentation', 'busy', 'protected'].includes(s.state) ? true : this.diag.powerpointProcess });
                     if (s.state === 'ok') {
                         this.emit({ state: 'ok', file: String(s.file || ''), name: String(s.name || ''), index: Number(s.index) || 1, count: Number(s.count) || 0, title: String(s.title || '').replace(/\s+/g, ' ').trim(), notes: cleanNotes(s.notes) });
                     } else {

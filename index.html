@@ -283,15 +283,15 @@
             </div>
             <div class="header-right">
                 <div class="header-actions">
-                    <button class="btn-top" id="btn-live" onclick="api.setSource('live')" title="FOLLOW THE SLIDE POWERPOINT IS SHOWING ON THIS PC">LOCAL</button>
+                    <button class="btn-top" id="btn-live" onclick="api.setSource('live')" title="FOLLOW THE SLIDE POWERPOINT OR LIBREOFFICE IMPRESS IS SHOWING ON THIS PC">LOCAL</button>
                     <button class="btn-top" id="btn-network" onclick="api.setSource('network')" title="SHOW THE NOTES A POWERPOINT PC SENDS WITH CLEAN NOTES JOE SENDER">NETWORK</button>
-                    <button class="btn-top" id="btn-file" onclick="api.setSource('file')" title="SHOW THE NOTES OF THE LOADED .PPTX FILE">FILE</button>
+                    <button class="btn-top" id="btn-file" onclick="api.setSource('file')" title="SHOW THE NOTES OF THE LOADED .PPTX OR .ODP FILE">FILE</button>
                     <span class="header-sep"></span>
-                    <button class="btn-top is-blue" id="btn-load" onclick="api.openDeck()" title="OPEN A .PPTX FILE">LOAD</button>
+                    <button class="btn-top is-blue" id="btn-load" onclick="api.openDeck()" title="OPEN A .PPTX (POWERPOINT) OR .ODP (LIBREOFFICE) FILE">LOAD</button>
                     <button class="btn-top" id="btn-clear" onclick="askClearDeck()" title="CLOSE THE LOADED FILE (IT ISN'T REOPENED NEXT TIME)">CLEAR</button>
                     <button class="btn-top" id="btn-reload" onclick="api.reloadDeck()" title="READ THE FILE AGAIN (IT ALSO REFRESHES BY ITSELF WHEN SAVED)">REFRESH</button>
                 </div>
-                <div class="format-hint" id="deck-hint">ACCEPTED: PPTX</div>
+                <div class="format-hint" id="deck-hint">ACCEPTED: PPTX · ODP</div>
             </div>
         </div>
 
@@ -480,10 +480,10 @@
                     ? `<div class="empty-playlist"><div class="empty-title">${state.net.receiver.healthy ? 'FOLLOWING ' + state.net.receiver.name.toUpperCase() : state.net.receiver.set ? 'WAITING FOR ' + (state.net.receiver.name || 'THE PAIRED PC').toUpperCase() : 'NOT PAIRED'}</div>
                        <div class="empty-hint">${state.net.receiver.set ? 'ITS SLIDE LIST SHOWS HERE ONCE POWERPOINT HAS A SAVED DECK OPEN' : 'OPEN CLEAN NOTES JOE SENDER ON THE POWERPOINT PC,<br>THEN CHOOSE IT UNDER <span class="empty-key">PAIRED WITH</span> IN THE NETWORK PANEL'}</div></div>`
                     : live
-                    ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING POWERPOINT' : 'WAITING FOR POWERPOINT'}</div>
-                       <div class="empty-hint">OPEN A SAVED .PPTX IN POWERPOINT<br>TO SEE ITS SLIDE LIST HERE</div></div>`
+                    ? `<div class="empty-playlist"><div class="empty-title">${state.live.status === 'ok' ? 'FOLLOWING THE PRESENTATION' : 'WAITING FOR POWERPOINT OR LIBREOFFICE'}</div>
+                       <div class="empty-hint">OPEN A SAVED .PPTX OR .ODP<br>TO SEE ITS SLIDE LIST HERE</div></div>`
                     : `<div class="empty-playlist"><div class="empty-title">NO DECK LOADED</div>
-                       <div class="empty-hint">CLICK <span class="empty-key">LOAD</span> TO OPEN A .PPTX${state && state.liveSupported ? '<br>OR <span class="empty-key green">LOCAL</span> TO FOLLOW POWERPOINT ON THIS PC' : ''}</div></div>`;
+                       <div class="empty-hint">CLICK <span class="empty-key">LOAD</span> TO OPEN A .PPTX OR .ODP${state && state.liveSupported ? '<br>OR <span class="empty-key green">LOCAL</span> TO FOLLOW POWERPOINT OR LIBREOFFICE ON THIS PC' : ''}</div></div>`;
                 updateDeckHint();
                 return;
             }
@@ -531,7 +531,7 @@
             const slides = deck.slides || [];
             const hint = $('deck-hint');
             hint.classList.toggle('is-refreshed', !!refreshedAt);
-            if (!slides.length) { hint.textContent = deck.name ? deck.name.toUpperCase() : 'ACCEPTED: PPTX'; hint.title = ''; return; }
+            if (!slides.length) { hint.textContent = deck.name ? deck.name.toUpperCase() : 'ACCEPTED: PPTX · ODP'; hint.title = ''; return; }
             const total = slides.reduce((n, s) => n + (s.hidden ? 0 : words(s.notes)), 0); // hidden slides aren't presented
             const txt = `${deck.name.toUpperCase()} · ${slides.length} SLIDES · ${slides.filter(s => s.notes).length} WITH NOTES · ~${Math.max(1, Math.round(total / 140))} MIN SPOKEN`;
             const time = refreshedAt ? new Date(refreshedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
@@ -756,7 +756,7 @@
             const btnLive = $('btn-live');
             lit(btnLive, live, s.live.status === 'ok' ? 'ok' : 'wait');
             btnLive.disabled = !s.liveSupported;
-            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT IS SHOWING ON THIS PC' : 'LOCAL NEEDS POWERPOINT ON WINDOWS';
+            btnLive.title = s.liveSupported ? 'FOLLOW THE SLIDE POWERPOINT OR LIBREOFFICE IMPRESS IS SHOWING ON THIS PC' : 'LOCAL NEEDS POWERPOINT ON WINDOWS';
             const netLost = ['lost', 'bad-code', 'unreachable'].includes(rx.status);
             lit($('btn-network'), network, rx.healthy ? 'ok' : netLost ? 'bad' : 'wait');
             lit($('btn-file'), s.source === 'file', s.deckFile ? 'ok' : 'wait');
