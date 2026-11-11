@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+    "blockReadsOutsideWorkingDirectories": true,
+    "allow": [
+      "PowerShell(npm start)",
+      "PowerShell(npm run start:sender)",
+      "PowerShell(npm install)",
+      "PowerShell(npm test)",
+      "PowerShell(npm run build*)",
+      "PowerShell(node --check *)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)"
+    ]
+  }
+}

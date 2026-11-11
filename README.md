@@ -93,17 +93,43 @@ Settings and the last deck are remembered in `%APPDATA%\clean-notes-joe`.
 | **- / +** | smaller / bigger text |
 | **Ctrl+Alt** + any of the above | the same, while PowerPoint or another app has focus (can be turned off under SCREEN → KEYS) |
 
-## Versioning
-The version lives in `package.json` (currently shown as the blue badge next to the logo and in both window
-titles). Every release has a section in [CHANGELOG.md](CHANGELOG.md) and a git tag. `npm test` fails if the
-version in `package.json` has no changelog section.
+## Branches and versions
+The code lives in a private GitHub repo,
+[josephstracuzzi/clean-notes-joe](https://github.com/josephstracuzzi/clean-notes-joe), and works the same way as
+[Playback Joe](https://github.com/josephstracuzzi/playback-joe).
 
-To release:
-1. Add a `## [x.y.z] - date` section at the top of `CHANGELOG.md` describing the changes, and commit it.
-2. Run `npm version patch` (fixes), `npm version minor` (new features) or `npm version major`. This checks the
-   changelog has a section for the new version, bumps `package.json`, commits and creates the `vx.y.z` tag.
-3. `npm run build`, then `git push --follow-tags` and attach both `.exe` files from `dist/` to a GitHub release
-   for the tag.
+**Feature branches.** Each feature or batch of fixes gets its own branch from `main`, named in capitals after
+the feature: `SOURCE-INDICATOR`, `HIDDEN-SLIDES`, `BUGFIX`. Branches are kept after they're merged.
+
+**Every commit is a version.** Each commit that changes the app bumps the version in `package.json` (shown as
+the blue badge next to the logo and in both window titles), adds a matching `## [x.y.z] - date` section to
+[CHANGELOG.md](CHANGELOG.md), and is titled with the version and a short summary, with the details as a list
+underneath:
+```
+Clean Notes Joe 0.6.1: source label above the slide list
+
+- NETWORK, LOCAL or FILE in its own colour above the cuelist
+- ...
+```
+MINOR (0.6.0 → 0.7.0) for a new feature or setting, PATCH (0.6.0 → 0.6.1) for a fix or refinement, MAJOR for
+changes that break saved settings or how the app is operated. `npm test` fails if the version in
+`package.json` has no changelog section.
+
+**Merging.** When a branch is done and tried in the app, `main` is moved forward to it (no merge commit, no pull
+request), then pushed:
+```
+git switch main
+git merge --ff-only SOURCE-INDICATOR
+git push origin main SOURCE-INDICATOR
+```
+README, roadmap and other docs-only commits go straight onto `main`, without a version.
+
+**Releases.** Only chosen versions become releases, from `main`:
+1. `npm run build` makes `dist/Clean Notes Joe x.y.z Portable.exe` and `dist/Clean Notes Joe Sender x.y.z Portable.exe`.
+2. `git tag vx.y.z` and `git push origin vx.y.z`.
+3. Publish a GitHub release titled **Clean Notes Joe x.y.z** with both `.exe` files attached. The notes list the
+   downloads, the SmartScreen warning (the apps aren't code-signed), what's new since the last release, and
+   where settings are kept (`%APPDATA%\clean-notes-joe` and `%APPDATA%\clean-notes-joe-sender`).
 
 ## Build
 Windows 10 / 11 (64-bit) for now:
