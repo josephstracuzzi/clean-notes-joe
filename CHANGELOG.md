@@ -9,6 +9,13 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.9.1] - 2026-11-11
+
+### Changed
+- The **auto-scroll progress bar** along the bottom of the output is taller: 20 px at 1080p (was 4 px), scaling with the
+  screen. The ▼ arrow sits just above it.
+- It matches the header bar: the header's band colour behind, and the **HEADER COLOUR** for the part scrolled.
+
 ## [0.9.0] - 2026-11-11
 
 ### Added

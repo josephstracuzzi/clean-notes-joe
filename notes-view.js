@@ -222,11 +222,13 @@
             });
             this.headerFontPx = Math.round(headerH * 0.5);
             this.slideLabel.textContent = s.showSlideNumber && st.count ? `${st.index + 1} / ${st.count}` : '';
-            Object.assign(this.more.style, { fontSize: Math.round(26 * u) + 'px', bottom: Math.round(H * 0.012) + 'px' });
-            const barH = Math.max(2, Math.round(4 * u)) + 'px';
-            Object.assign(this.track.style, { height: barH, background: s.color });
-            Object.assign(this.progressWrap.style, { height: barH });
-            this.progress.style.background = s.color;
+            // Auto-scroll progress bar along the bottom (20 px at 1080p), with the "more" arrow just above it.
+            // It matches the header: the band's colour behind, the header colour for the part scrolled.
+            const bar = Math.max(6, Math.round(20 * u));
+            Object.assign(this.more.style, { fontSize: Math.round(26 * u) + 'px', bottom: (bar + Math.round(H * 0.008)) + 'px' });
+            Object.assign(this.track.style, { height: bar + 'px', background: tint(hc, 0.08), opacity: '1' });
+            Object.assign(this.progressWrap.style, { height: bar + 'px' });
+            this.progress.style.background = hc;
             this.updateClock();
             this.applyOffset();
         }
