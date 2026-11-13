@@ -42,7 +42,8 @@ jobs:
 
       - run: npm test
 
-      # Each app is built, signed and zipped before the next, because both are built into the same dist/mac folders.
+      # Each app is built, signed, zipped and started (checked through its remote debugging port, with a fresh
+      # settings folder) before the next, because both are built into the same dist/mac folders.
       # Apple Silicon Macs refuse to run an app with no signature at all, so both get an ad hoc one.
       - name: Build Clean Notes Joe
         env:
@@ -50,6 +51,7 @@ jobs:
         run: |
           npx electron-builder --mac dir --x64 --arm64 -c.mac.identity=null
           ./.github/workflows/mac-zip.sh "Clean Notes Joe"
+          CNJ_PROFILE="$RUNNER_TEMP/cnj" ./.github/workflows/mac-check.sh "Clean Notes Joe" "CLEAN NOTES JOE $VERSION - OPERATOR" "output.html"
 
       - name: Build Clean Notes Joe Sender
         env:
@@ -57,28 +59,7 @@ jobs:
         run: |
           npx electron-builder --mac dir --x64 --arm64 --config electron-builder.sender.json -c.mac.identity=null
           ./.github/workflows/mac-zip.sh "Clean Notes Joe Sender"
-
-      # Start each Apple Silicon app and look for its windows through the remote debugging port. CNJ_PROFILE /
-      # CNJ_SENDER_PROFILE give each a fresh settings folder.
-      - name: Launch the apps
-        run: |
-          check() {
-            exe="$1"; title="$2"; extra="$3"
-            rm -f pages.json
-            "$exe" --remote-debugging-port=9223 &
-            pid=$!
-            for i in $(seq 1 40); do
-              curl -s http://127.0.0.1:9223/json > pages.json || true
-              if grep -q "$title" pages.json && { [ -z "$extra" ] || grep -q "$extra" pages.json; }; then break; fi
-              sleep 1
-            done
-            cat pages.json
-            kill -9 $pid || true
-            sleep 2
-            grep -q "$title" pages.json && { [ -z "$extra" ] || grep -q "$extra" pages.json; }
-          }
-          CNJ_PROFILE="$RUNNER_TEMP/cnj" check "dist/mac-arm64/Clean Notes Joe.app/Contents/MacOS/Clean Notes Joe" "CLEAN NOTES JOE $VERSION - OPERATOR" "output.html"
-          CNJ_SENDER_PROFILE="$RUNNER_TEMP/cnj-sender" check "dist/mac-arm64/Clean Notes Joe Sender.app/Contents/MacOS/Clean Notes Joe Sender" "CLEAN NOTES JOE SENDER $VERSION"
+          CNJ_SENDER_PROFILE="$RUNNER_TEMP/cnj-sender" ./.github/workflows/mac-check.sh "Clean Notes Joe Sender" "CLEAN NOTES JOE SENDER $VERSION"
 
       - name: Attach to the release
         env:
