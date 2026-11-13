@@ -21,7 +21,7 @@ env:
 
 jobs:
   mac:
-    runs-on: macos-14
+    runs-on: macos-latest   # macos-14 was retired; latest always points at a supported macOS
     steps:
       - uses: actions/checkout@v4
         with:
