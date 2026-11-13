@@ -2,7 +2,7 @@
 
 All notable changes to Clean Notes Joe. The version number lives in `package.json` and is shown in the
 console's header badge and both window titles. Each version gets a section here; versions published as
-GitHub releases also get a git tag (`v0.1.0`, ...). See **Branches and versions** in the README.
+GitHub releases also get a git tag (`v0.1.0`, ...). See **Branches and versions** in DEVELOPMENT.md.
 
 Versions follow `MAJOR.MINOR.PATCH`:
 - **PATCH** for fixes that don't change how the app is used
