@@ -9,7 +9,8 @@ npm start                 # Clean Notes Joe
 npm start -- talk.pptx    # ... with a deck (.pptx or .odp) opened in FILE
 npm run start:sender      # Clean Notes Joe Sender
 npm test                  # the .pptx / .odp reader, network sync and the changelog check
-npm run build             # both portable .exe files in dist/
+npm run build             # both portable .exe files in dist/ (Windows)
+npm run build:mac         # both Mac apps in dist/ (on a Mac)
 ```
 
 ## Test deck
@@ -40,7 +41,7 @@ README, roadmap and other docs-only commits go straight onto `main`, without a v
 **Releases.** Only chosen versions become releases, from `main`:
 1. `npm run build` makes both portable `.exe` files in `dist/`.
 2. `git tag vx.y.z` and `git push origin vx.y.z`.
-3. Publish a GitHub release titled **Clean Notes Joe x.y.z** with both `.exe` files attached. The notes list the downloads, the SmartScreen warning, what's new since the last release, and where settings are kept.
+3. Publish a GitHub release titled **Clean Notes Joe x.y.z** with both `.exe` files attached. Publishing it starts the **Release builds** workflow (`.github/workflows/release-builds.yml`), which builds both Mac apps on GitHub, checks they start, and attaches the four Mac zips a few minutes later. The notes list the downloads, the SmartScreen warning, what's new since the last release, and where settings are kept.
 
 ## Project layout
 | File | What it does |

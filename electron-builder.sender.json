@@ -18,6 +18,22 @@
   "portable": {
     "artifactName": "${productName} ${version} Portable.exe"
   },
+  "mac": {
+    "target": [
+      {
+        "target": "zip",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "icon": "icon.png",
+    "category": "public.app-category.productivity",
+    "extendInfo": {
+      "NSAppleEventsUsageDescription": "Clean Notes Joe Sender follows the slide PowerPoint is showing, to send its notes."
+    }
+  },
   "files": [
     "package.json",
     "sender-main.js",

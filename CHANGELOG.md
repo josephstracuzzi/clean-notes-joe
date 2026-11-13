@@ -9,6 +9,14 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.9.2] - 2026-11-13
+
+### Added
+- **Mac versions (experimental)** of Clean Notes Joe and the Sender, for Apple Silicon and Intel Macs, built on GitHub and
+  attached to each release by the **Release builds** workflow (built, signed ad hoc, and checked that they start).
+  Following PowerPoint on a Mac reads the notes from the saved deck; following LibreOffice is Windows only.
+- `npm run build:mac` builds both Mac apps on a Mac.
+
 ## [0.9.1] - 2026-11-11
 
 ### Changed

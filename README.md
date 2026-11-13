@@ -10,14 +10,21 @@ Designed by Joseph Stracuzzi
 ## ⬇️ Download
 Get the latest version from the **[Releases page](https://github.com/josephstracuzzi/clean-notes-joe/releases/latest)**. Both apps are portable: nothing to install, just download and run.
 
-| App | Download | Use it on |
+| App | Use it on |
+|---|---|
+| **Clean Notes Joe** | The computer with the notes screen. On its own it reads a deck file or follows PowerPoint / LibreOffice on the same computer. |
+| **Clean Notes Joe Sender** | The presentation computer, when the notes are shown on another one (see [Network](#-network-presentation-on-one-pc-notes-on-another)). |
+
+| System | Download | How to run |
 |---|---|---|
-| **Clean Notes Joe** | `Clean Notes Joe <version> Portable.exe` | The PC with the notes screen. On its own it reads a deck file or follows PowerPoint / LibreOffice on the same PC. |
-| **Clean Notes Joe Sender** | `Clean Notes Joe Sender <version> Portable.exe` | The presentation PC, when the notes are shown on another PC (see [Network](#-network-presentation-on-one-pc-notes-on-another)). |
+| Windows 10 / 11 (64-bit) | `Clean Notes Joe <version> Portable.exe` and `Clean Notes Joe Sender <version> Portable.exe` | Double-click it. |
+| macOS 10.15 or later (experimental) | `Clean Notes Joe <version> Mac Apple Silicon.zip` (M1 and newer) or `... Mac Intel.zip`, and the same for the Sender | Unzip it and move the app to Applications. |
 
-For Windows 10 / 11 (64-bit). The apps are not code-signed, so on first launch Windows SmartScreen says "Windows protected your PC". Click **More info → Run anyway**.
+The apps are not code-signed, so on first launch Windows SmartScreen says "Windows protected your PC". Click **More info → Run anyway**.
 
-Your settings are kept in your app-data folder (`%APPDATA%\clean-notes-joe`, and `%APPDATA%\clean-notes-joe-sender` for the Sender), so they stay put when you move or replace the app file.
+On a Mac, the first time you open it macOS says it can't check the app. Go to **System Settings → Privacy & Security** and click **Open Anyway**. If macOS says the app "is damaged", run `xattr -cr "/Applications/Clean Notes Joe.app"` in Terminal once. To follow PowerPoint (LOCAL, or the Sender), allow it to control PowerPoint when macOS asks; on a Mac the notes are read from the saved deck, so save in PowerPoint to see edits. Following LibreOffice is Windows only. The Mac version is new and hasn't been tested at a show yet.
+
+Your settings are kept in your app-data folder (`%APPDATA%\clean-notes-joe` on Windows, `~/Library/Application Support/clean-notes-joe` on a Mac, and `clean-notes-joe-sender` for the Sender), so they stay put when you move or replace the app.
 
 ---
 
@@ -101,5 +108,5 @@ npm start               # Clean Notes Joe
 npm run start:sender    # Clean Notes Joe Sender
 ```
 
-To make the portable apps yourself, run `npm run build`. The files go to the `dist/` folder.
+To make the apps yourself, run `npm run build` on Windows or `npm run build:mac` on a Mac. The files go to the `dist/` folder.
 

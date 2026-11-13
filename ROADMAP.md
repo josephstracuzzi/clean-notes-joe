@@ -10,5 +10,4 @@ Ideas agreed for later, in no particular order. When one is built, it moves to C
   **LOCAL** (PowerPoint on this PC) or **FILE**, shown in the cuelist (slide list) area on the left: a
   prominent source label in its own colour above or around the slide list, rather than relying on the small badge
   on the PGM bar and the line under it.
-- **Mac builds**: the code has a macOS live path (AppleScript), untested; builds were dropped to focus on Windows.
 - **Remote slide control**: deliberately not built (network sync is one way). Revisit only if wanted.

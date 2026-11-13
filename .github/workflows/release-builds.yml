@@ -1,0 +1,86 @@
+# Builds the macOS apps (Clean Notes Joe and the Sender, each for Apple Silicon and Intel) on GitHub's runners and
+# attaches them to the release. The Windows portable .exe files are still built locally.
+# Runs when a release is published, or by hand for an existing tag (Actions > Release builds > Run workflow).
+# The Mac apps are signed ad hoc only (no Apple Developer certificate), so macOS asks users to approve them once.
+name: Release builds
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach to (for example v0.9.2)
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Check the tag matches package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if [ "v$VERSION" != "$TAG" ]; then echo "Tag $TAG does not match package.json $VERSION"; exit 1; fi
+
+      - run: npm ci
+
+      - run: npm test
+
+      # Each app is built, signed and zipped before the next, because both are built into the same dist/mac folders.
+      # Apple Silicon Macs refuse to run an app with no signature at all, so both get an ad hoc one.
+      - name: Build Clean Notes Joe
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          npx electron-builder --mac dir --x64 --arm64 -c.mac.identity=null
+          ./.github/workflows/mac-zip.sh "Clean Notes Joe"
+
+      - name: Build Clean Notes Joe Sender
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: |
+          npx electron-builder --mac dir --x64 --arm64 --config electron-builder.sender.json -c.mac.identity=null
+          ./.github/workflows/mac-zip.sh "Clean Notes Joe Sender"
+
+      # Start each Apple Silicon app and look for its windows through the remote debugging port. CNJ_PROFILE /
+      # CNJ_SENDER_PROFILE give each a fresh settings folder.
+      - name: Launch the apps
+        run: |
+          check() {
+            exe="$1"; title="$2"; extra="$3"
+            rm -f pages.json
+            "$exe" --remote-debugging-port=9223 &
+            pid=$!
+            for i in $(seq 1 40); do
+              curl -s http://127.0.0.1:9223/json > pages.json || true
+              if grep -q "$title" pages.json && { [ -z "$extra" ] || grep -q "$extra" pages.json; }; then break; fi
+              sleep 1
+            done
+            cat pages.json
+            kill -9 $pid || true
+            sleep 2
+            grep -q "$title" pages.json && { [ -z "$extra" ] || grep -q "$extra" pages.json; }
+          }
+          CNJ_PROFILE="$RUNNER_TEMP/cnj" check "dist/mac-arm64/Clean Notes Joe.app/Contents/MacOS/Clean Notes Joe" "CLEAN NOTES JOE $VERSION - OPERATOR" "output.html"
+          CNJ_SENDER_PROFILE="$RUNNER_TEMP/cnj-sender" check "dist/mac-arm64/Clean Notes Joe Sender.app/Contents/MacOS/Clean Notes Joe Sender" "CLEAN NOTES JOE SENDER $VERSION"
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/*.zip --clobber --repo "$GITHUB_REPOSITORY"

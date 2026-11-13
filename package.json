@@ -1,6 +1,6 @@
 {
   "name": "clean-notes-joe",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Speaker notes from PowerPoint, fullscreen on a second display, with auto-fit and auto-scroll. Includes Clean Notes Joe Sender for PowerPoint PCs (Windows)",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "version": "node test/version.test.js && git add CHANGELOG.md",
     "build": "electron-builder --win --x64 && electron-builder --win --x64 --config electron-builder.sender.json",
     "build:win": "electron-builder --win --x64 && electron-builder --win --x64 --config electron-builder.sender.json",
-    "start:sender": "electron sender-main.js"
+    "start:sender": "electron sender-main.js",
+    "build:mac": "electron-builder --mac && electron-builder --mac --config electron-builder.sender.json"
   },
   "author": "Joseph Stracuzzi",
   "license": "MIT",
@@ -51,6 +52,22 @@
         "from": "test_decks",
         "to": "test_decks"
       }
-    ]
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Clean Notes Joe follows the slide PowerPoint is showing."
+      }
+    }
   }
 }
