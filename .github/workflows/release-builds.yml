@@ -42,24 +42,48 @@ jobs:
 
       - run: npm test
 
-      # Each app is built, signed, zipped and started (checked through its remote debugging port, with a fresh
-      # settings folder) before the next, because both are built into the same dist/mac folders.
+      # Each app is built, signed, zipped and started before the next, because both are built into the same
+      # dist/mac folders. This is all in the workflow (not in scripts in the repo) so it works for any tag.
       # Apple Silicon Macs refuse to run an app with no signature at all, so both get an ad hoc one.
-      - name: Build Clean Notes Joe
+      # The check starts the Apple Silicon app with a fresh settings folder and looks for its windows through
+      # the remote debugging port.
+      - name: Build, sign, zip and check both apps
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
+          zip_app() {
+            name="$1"
+            for pair in "mac-arm64:Apple Silicon" "mac:Intel"; do
+              dir="${pair%%:*}"; label="${pair#*:}"
+              app="dist/$dir/$name.app"
+              codesign --force --deep --sign - "$app"
+              codesign --verify --deep --strict "$app"
+              ditto -c -k --sequesterRsrc --keepParent "$app" "dist/$name $VERSION Mac $label.zip"
+            done
+          }
+          check_app() {
+            name="$1"; title="$2"; extra="${3:-}"
+            found() { grep -q "$title" pages.json && { [ -z "$extra" ] || grep -q "$extra" pages.json; }; }
+            rm -f pages.json
+            "dist/mac-arm64/$name.app/Contents/MacOS/$name" --remote-debugging-port=9223 &
+            pid=$!
+            for i in $(seq 1 40); do
+              curl -s http://127.0.0.1:9223/json > pages.json || true
+              if found; then break; fi
+              sleep 1
+            done
+            cat pages.json
+            kill -9 $pid || true
+            sleep 2
+            found
+          }
           npx electron-builder --mac dir --x64 --arm64 -c.mac.identity=null
-          ./.github/workflows/mac-zip.sh "Clean Notes Joe"
-          CNJ_PROFILE="$RUNNER_TEMP/cnj" ./.github/workflows/mac-check.sh "Clean Notes Joe" "CLEAN NOTES JOE $VERSION - OPERATOR" "output.html"
-
-      - name: Build Clean Notes Joe Sender
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: |
+          zip_app "Clean Notes Joe"
+          CNJ_PROFILE="$RUNNER_TEMP/cnj" check_app "Clean Notes Joe" "CLEAN NOTES JOE $VERSION - OPERATOR" "output.html"
           npx electron-builder --mac dir --x64 --arm64 --config electron-builder.sender.json -c.mac.identity=null
-          ./.github/workflows/mac-zip.sh "Clean Notes Joe Sender"
-          CNJ_SENDER_PROFILE="$RUNNER_TEMP/cnj-sender" ./.github/workflows/mac-check.sh "Clean Notes Joe Sender" "CLEAN NOTES JOE SENDER $VERSION"
+          zip_app "Clean Notes Joe Sender"
+          CNJ_SENDER_PROFILE="$RUNNER_TEMP/cnj-sender" check_app "Clean Notes Joe Sender" "CLEAN NOTES JOE SENDER $VERSION"
+          ls -la dist/*.zip
 
       - name: Attach to the release
         env:
