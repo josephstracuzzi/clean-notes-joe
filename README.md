@@ -1,130 +1,128 @@
 # Clean Notes Joe
 Designed by Joseph Stracuzzi
 
-**Your PowerPoint speaker notes, big and clean on a second screen.** Load a deck, or let Clean Notes Joe
-follow PowerPoint (or LibreOffice Impress). The notes for the current slide fill a fullscreen display, sized to fit, and
-scroll gently when there's too much to fit. A companion to [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
+**Your speaker notes, big and clean on a second screen.** Load a PowerPoint or LibreOffice Impress deck, or let Clean Notes Joe follow the presentation that's running. The notes for the current slide fill a fullscreen display, sized to fit, and scroll at reading pace when there's too much to fit. A companion to [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
+
+![Clean Notes Joe: operator console (left) and fullscreen notes on a second display (right)](docs/screenshot-dual-display.png)
 
 ---
 
-## Run it
+## ⬇️ Download
+Get the latest version from the **[Releases page](https://github.com/josephstracuzzi/clean-notes-joe/releases/latest)**. Both apps are portable: nothing to install, just download and run.
 
-```
+| App | Download | Use it on |
+|---|---|---|
+| **Clean Notes Joe** | `Clean Notes Joe <version> Portable.exe` | The PC with the notes screen. On its own it reads a deck file or follows PowerPoint / LibreOffice on the same PC. |
+| **Clean Notes Joe Sender** | `Clean Notes Joe Sender <version> Portable.exe` | The presentation PC, when the notes are shown on another PC (see [Network](#-network-presentation-on-one-pc-notes-on-another)). |
+
+For Windows 10 / 11 (64-bit). The apps are not code-signed, so on first launch Windows SmartScreen says "Windows protected your PC". Click **More info → Run anyway**.
+
+Your settings are kept in your app-data folder (`%APPDATA%\clean-notes-joe`, and `%APPDATA%\clean-notes-joe-sender` for the Sender), so they stay put when you move or replace the app file.
+
+---
+
+## ✨ Features
+
+### Two windows, one show
+- **Operator console** on your main screen: the slide list, a **PGM** preview that matches the output exactly, the slide timer, transport and all display settings.
+- **Output window** with only the notes. With a second display connected it opens fullscreen there. On a single screen it opens as a 16:9 window in the top-right corner. **DISPLAY** picks a specific screen, and the output moves by itself when a display is plugged in or unplugged.
+- A **header bar** on the output with the slide number (**4 / 10**), the slide timer and the clock, in the notes colour or its own colour.
+- Only one copy of each app runs at a time, so a double-click can't open a second set of windows.
+
+### Three sources
+The buttons top left pick where the notes come from: **LOCAL · NETWORK · FILE**. The active one is lit: green when working, amber while waiting, red when the network connection is lost.
+- **FILE** shows the notes of a `.pptx` (PowerPoint) or `.odp` (LibreOffice Impress) opened with **LOAD**. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn (most clickers) or by clicking a slide. Save the deck and it refreshes by itself: **REFRESH** flashes green and the line under the buttons says **✓ REFRESHED** with the time. **CLEAR** closes the file.
+- **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor. Notes come straight from PowerPoint, so edits show up before you save. With no presentation open in PowerPoint, **LibreOffice Impress** is followed the same way. Clean Notes Joe never starts either app itself, and with nothing open the screen stays empty.
+- **NETWORK** shows the notes a presentation PC sends with Clean Notes Joe Sender.
+
+<img src="docs/feature-sources.png" width="411" alt="LOCAL, NETWORK and FILE source buttons, then LOAD, CLEAR and REFRESH, with REFRESHED and the time underneath">
+
+Clean Notes Joe always starts with nothing loaded. Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View* if it would take over the screen you use for notes.
+
+### Hidden slides
+Slides hidden in PowerPoint or Impress are stepped over in FILE, as in the slideshow, and left out of the **~MIN SPOKEN** estimate. They stay in the slide list with a red **HIDDEN** tag and can still be clicked if you need one.
+
+<img src="docs/feature-hidden.png" width="582" alt="Slide list with slide 8 dimmed and tagged HIDDEN in red, between slides 7 and 9">
+
+### Fit and scroll at reading pace
+- **Auto-fit** picks the largest text size between MIN and MAX that fits the screen.
+- When the notes still don't fit, **auto-scroll** starts after the START DELAY and is paced to a **READING SPEED** in words per minute (140 by default): the last line comes into view as you reach the last word, so the text never runs ahead of you.
+- A **progress bar** along the bottom of the output, in the header's colours, shows how far through the notes you are. Drag the bar under the slide timer to scroll by hand.
+
+<img src="docs/feature-reading-speed.png" width="453" alt="FIT & SCROLL panel: AUTO-FIT, MIN and MAX SIZE, AUTO-SCROLL, READING SPEED 140 WPM and START DELAY">
+
+### Built for the screen you're reading
+- **Text**: font, bold, uppercase, alignment, line spacing, paragraph gap and side margin.
+- **Colour**: presets (white, yellow, green, cyan on black, white on navy, black on white) or any colours.
+- **Screen**: the header bar (slide number, timer, clock, size and colour), centre vertically, and **mirror** for teleprompter glass.
+- Sizes are in points at 1080p and scale with the output, so text looks the same on any screen.
+
+<img src="docs/feature-screen.png" width="453" alt="SCREEN panel: HEADER BAR items, HEADER SIZE, HEADER COLOUR presets, HEADER FONT, LAYOUT and KEYS">
+
+### Keyboard shortcuts
+| Key | Action |
+|---|---|
+| **← / →**, **PgUp / PgDn** | Previous / next slide (FILE), skipping hidden slides |
+| **↑ / ↓** | Scroll |
+| **Space** | Pause / resume auto-scroll |
+| **Home** | Back to the top, restart the start delay |
+| **- / +** | Smaller / bigger text |
+| **Ctrl+Alt** + any of the above | The same, while PowerPoint or another app has focus (can be turned off under SCREEN → KEYS) |
+
+---
+
+## 🌐 Network: presentation on one PC, notes on another
+- **Clean Notes Joe** runs on each notes PC.
+- **Clean Notes Joe Sender** runs on each presentation PC: a small window that follows PowerPoint (or LibreOffice Impress) and sends the current slide and notes. It starts sending as soon as it opens; there's nothing to switch on.
+
+<img src="docs/feature-sender.png" width="541" alt="Clean Notes Joe Sender following slide 4 of 10, SENDING TO 1, with ROLE, THIS PC'S NAME and SHOW CODE">
+
+**On the presentation PC:** open **Clean Notes Joe Sender** next to PowerPoint. The first time, set **ROLE** (MAIN or BACKUP) and **THIS PC'S NAME** (e.g. STAGE-A); it remembers them. When Windows asks to allow it on the network, allow it on **Private** networks. Leave it running during the show: minimizing hides it to the system tray, where it keeps sending, and closing the window asks before it stops sending.
+
+**On the notes PC:** click **NETWORK**, then pick the presentation PC under **PAIRED WITH** (listed with its role and IP address). If the list stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and enter the address shown in the Sender.
+
+<img src="docs/feature-network.png" width="453" alt="NETWORK panel paired with STAGE-A, MAIN, status CONNECTED, FOLLOWING POWERPOINT">
+
+- Each notes PC is paired with one presentation PC. With main and backup machines, pair the main notes PC with the main presentation PC and the backup with the backup. There is no automatic switching.
+- Slide changes arrive almost instantly, and notes come straight from PowerPoint, so edits show before you save.
+- The pairing is remembered by the PC's identity, not its IP address, so a new DHCP address doesn't break it.
+- If the connection drops (cable pulled, PC restarted), the notes screen keeps the last notes, the console shows **CONNECTION LOST**, and it reconnects by itself. The output never shows network status.
+- **SHOW CODE** (optional): enter the same code in the Sender and on the notes PCs, and machines without it are refused. Useful on shared networks; leave it blank on a private show network.
+- One way only: a notes PC can't change slides or control the presentation PC. Uses TCP port 47820 and UDP port 47821.
+
+---
+
+## 🛠️ Building from source (developers)
+You only need this if you want to change the code. Install [Node.js](https://nodejs.org/), then in the project folder:
+
+```bash
 npm install
 npm start               # Clean Notes Joe
 npm run start:sender    # Clean Notes Joe Sender
+npm test
 ```
 
-Clean Notes Joe always starts with nothing loaded. `npm start -- talk.pptx` (or `.odp`) opens a deck straight away in FILE.
+`npm start -- talk.pptx` (or `.odp`) opens a deck straight away in FILE. To make the portable apps yourself, run `npm run build`: it makes `Clean Notes Joe <version> Portable.exe` and `Clean Notes Joe Sender <version> Portable.exe` in the `dist/` folder.
 
-## Two windows
-- **Operator console** on your main screen: the slide list, a PGM preview that matches the output exactly,
-  the slide timer, transport and all display settings.
-- **Output** with only the notes. With a second display connected it opens fullscreen there. On a single
-  screen it opens as a 16:9 window in the top-right corner. **DISPLAY** picks a specific screen, and the output
-  moves by itself when a display is plugged in or unplugged.
+### Test deck
+`test_decks/Clean Notes Joe Test Deck.pptx` is where the LOAD dialog starts until you've opened a deck. Its 10 slides cover very short notes, several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and blank lines, a hidden slide, special characters and other scripts, and all-caps notes. Each slide says on it what it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
 
-## Three sources
-The buttons top left pick where the notes come from: **LOCAL · NETWORK · FILE** (the active one is lit: green when
-working, amber while waiting, red when the network connection is lost). **LOAD** opens a `.pptx` (PowerPoint) or `.odp` (LibreOffice Impress), **CLEAR** closes it (after
-asking; it isn't reopened at the next launch) and **REFRESH** reads it again (it also
-refreshes by itself when the file is saved). After a refresh, REFRESH flashes green and the line under the buttons
-says **✓ REFRESHED** with the time.
+### Branches and versions
+The project works the same way as [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
 
-- **FILE** shows the notes of the deck opened with **LOAD**. Step with ◀ PREV / NEXT ▶, the arrow keys, PgUp/PgDn
-  (most clickers) or by clicking a slide. Save the deck in PowerPoint and it reloads by itself.
-  Slides hidden in PowerPoint are stepped over, as in the slideshow, and left out of the spoken-time estimate. They
-  stay in the slide list with a red **HIDDEN** tag and can still be clicked.
-- **LOCAL** follows the slide PowerPoint is on, on this PC, in the slideshow and in the editor.
-  Notes come straight from PowerPoint, so edits show up before you save. Only what PowerPoint has open is shown:
-  with PowerPoint closed (or no presentation open) the slide list and output are empty.
-  With no presentation open in PowerPoint, **LibreOffice Impress** is followed the same way (slideshow or editor,
-  notes straight from Impress). Clean Notes Joe never starts LibreOffice itself.
-  - Tip: in PowerPoint's *Slide Show* settings, send the show to the projector and turn off *Presenter View*
-    if it would take over the screen you use for notes.
+**Feature branches.** Each feature or batch of fixes gets its own branch from `main`, named in capitals after the feature: `SOURCE-INDICATOR`, `HIDDEN-SLIDES`, `BUGFIX`. Branches are kept after they're merged.
 
-## Network: PowerPoint on one PC, notes on another
-Two apps, built from this project with the same version number:
-- **Clean Notes Joe** on each notes PC (this app).
-- **Clean Notes Joe Sender** on each PowerPoint PC: a small window that follows PowerPoint (or LibreOffice Impress,
-  as LOCAL does) and sends the current slide and notes. It starts sending as soon as it opens; there's nothing to switch on.
-
-Each notes PC is paired with one PowerPoint PC. With main and backup machines, pair the main notes PC with the main
-PowerPoint PC and the backup notes PC with the backup PowerPoint PC. There is no automatic switching.
-
-**On the PowerPoint PC:** open **Clean Notes Joe Sender** next to PowerPoint. The first time, set **ROLE** (MAIN or
-BACKUP) and **THIS PC'S NAME** (e.g. STAGE-A); it remembers them. When Windows asks to allow it on the network,
-allow it on **Private** networks. The window shows the slide and notes it's sending, this PC's IP address, and
-which notes PCs are connected (**SENDING TO 2**). Leave it running during the show: minimizing hides it to the system
-tray, where it keeps sending (click the coffee-cup icon to bring it back). Closing the window asks before it stops sending.
-
-**On the notes PC:** click **NETWORK**, then pick the PowerPoint PC under **PAIRED WITH** (listed with
-its role and IP address). If the list stays empty (some venue Wi-Fi blocks this), choose **TYPE IP ADDRESS…** and
-enter the address shown in the Sender.
-
-Slide changes arrive almost instantly, and notes come straight from PowerPoint, so edits show before you save. The
-pairing is remembered by the PC's identity, not its IP address, so a new DHCP address doesn't break it. If the
-connection drops (cable pulled, PC restarted), the notes screen keeps the last notes, the console shows
-**CONNECTION LOST**, and it reconnects by itself. The output never shows network status.
-
-**SHOW CODE** (optional): enter the same code in the Sender and on the notes PCs. Machines without it are refused
-and are marked in the PAIRED WITH list. This is useful on shared or DHCP networks; leave it blank on a private
-show network.
-
-One way only: a notes PC can't change slides or control the PowerPoint PC. Uses TCP port 47820 and UDP port 47821.
-
-## Test deck
-`test_decks/Clean Notes Joe Test Deck.pptx` is where the LOAD dialog starts until you've opened a deck. Its 10 slides cover very short notes,
-several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and
-blank lines, a hidden slide, special characters and other scripts, and all-caps notes. Each slide says on it what
-it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
-
-## Display settings
-| | |
-|---|---|
-| Text | font, bold, uppercase, alignment, line spacing, paragraph gap, side margin |
-| Colour | presets (white, yellow, green, cyan on black, white on navy, black on white) or any colours |
-| Fit & scroll | **auto-fit** picks the largest size between MIN and MAX that fits. If it still doesn't fit, **auto-scroll** starts after the START DELAY, paced to the READING SPEED (words per minute) so the last line comes into view as you reach the last word. Drag the bar under the timer to scroll by hand |
-| Screen | **header bar** with slide number, slide timer and clock (HEADER SIZE 3 to 20% of the screen), centre vertically, **mirror** for teleprompter glass |
-
-Sizes are in points at 1080p and scale with the output, so text looks the same on any screen.
-Settings are remembered in `%APPDATA%\clean-notes-joe` (and the last deck's folder, where LOAD starts).
-
-## Keys
-| Key | Action |
-|---|---|
-| **← / →**, **PgUp / PgDn** | previous / next slide (FILE) |
-| **↑ / ↓** | scroll |
-| **Space** | pause / resume auto-scroll |
-| **Home** | back to the top, restart the start delay |
-| **- / +** | smaller / bigger text |
-| **Ctrl+Alt** + any of the above | the same, while PowerPoint or another app has focus (can be turned off under SCREEN → KEYS) |
-
-## Branches and versions
-The code lives in a private GitHub repo,
-[josephstracuzzi/clean-notes-joe](https://github.com/josephstracuzzi/clean-notes-joe), and works the same way as
-[Playback Joe](https://github.com/josephstracuzzi/playback-joe).
-
-**Feature branches.** Each feature or batch of fixes gets its own branch from `main`, named in capitals after
-the feature: `SOURCE-INDICATOR`, `HIDDEN-SLIDES`, `BUGFIX`. Branches are kept after they're merged.
-
-**Every commit is a version.** Each commit that changes the app bumps the version in `package.json` (shown as
-the blue badge next to the logo and in both window titles), adds a matching `## [x.y.z] - date` section to
-[CHANGELOG.md](CHANGELOG.md), and is titled with the version and a short summary, with the details as a list
-underneath:
+**Every commit is a version.** Each commit that changes the app bumps the version in `package.json` (shown as the blue badge next to the logo and in both window titles), adds a matching `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md), and is titled with the version and a short summary, with the details as a list underneath:
 ```
 Clean Notes Joe 0.6.1: source label above the slide list
 
 - NETWORK, LOCAL or FILE in its own colour above the cuelist
 - ...
 ```
-MINOR (0.6.0 → 0.7.0) for a new feature or setting, PATCH (0.6.0 → 0.6.1) for a fix or refinement, MAJOR for
-changes that break saved settings or how the app is operated. `npm test` fails if the version in
-`package.json` has no changelog section.
+MINOR (0.6.0 → 0.7.0) for a new feature or setting, PATCH (0.6.0 → 0.6.1) for a fix or refinement, MAJOR for changes that break saved settings or how the app is operated. `npm test` fails if the version in `package.json` has no changelog section.
 
-**Merging.** When a branch is done and tried in the app, `main` is moved forward to it (no merge commit, no pull
-request), then pushed:
-```
+**Merging.** When a branch is done and tried in the app, `main` is moved forward to it (no merge commit, no pull request), then pushed:
+```bash
 git switch main
 git merge --ff-only SOURCE-INDICATOR
 git push origin main SOURCE-INDICATOR
@@ -132,21 +130,11 @@ git push origin main SOURCE-INDICATOR
 README, roadmap and other docs-only commits go straight onto `main`, without a version.
 
 **Releases.** Only chosen versions become releases, from `main`:
-1. `npm run build` makes `dist/Clean Notes Joe x.y.z Portable.exe` and `dist/Clean Notes Joe Sender x.y.z Portable.exe`.
+1. `npm run build` makes both portable `.exe` files in `dist/`.
 2. `git tag vx.y.z` and `git push origin vx.y.z`.
-3. Publish a GitHub release titled **Clean Notes Joe x.y.z** with both `.exe` files attached. The notes list the
-   downloads, the SmartScreen warning (the apps aren't code-signed), what's new since the last release, and
-   where settings are kept (`%APPDATA%\clean-notes-joe` and `%APPDATA%\clean-notes-joe-sender`).
+3. Publish a GitHub release titled **Clean Notes Joe x.y.z** with both `.exe` files attached. The notes list the downloads, the SmartScreen warning, what's new since the last release, and where settings are kept.
 
-## Build
-Windows 10 / 11 (64-bit) for now:
-```
-npm run build         # dist/Clean Notes Joe <version> Portable.exe and dist/Clean Notes Joe Sender <version> Portable.exe
-```
-The app is portable (nothing to install) and not code-signed, so on first launch Windows SmartScreen says
-"Windows protected your PC". Click **More info → Run anyway**.
-
-## Project layout
+### Project layout
 | File | What it does |
 |---|---|
 | `main.js` | main process: show state, windows, displays, settings, global keys, IPC |
@@ -160,3 +148,4 @@ The app is portable (nothing to install) and not code-signed, so on first launch
 | `live.js` | follows PowerPoint, or LibreOffice Impress, through a hidden Windows PowerShell process (COM). Also has an untested macOS path for PowerPoint |
 | `test/` | `npm test`: the `.pptx` and `.odp` reader, network sync (real sockets) and the changelog check |
 | `test_decks/` | the test deck (bundled with the app) |
+| `docs/` | the screenshots in this README |
