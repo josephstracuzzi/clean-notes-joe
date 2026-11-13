@@ -9,6 +9,13 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.9.3] - 2026-11-13
+
+### Fixed
+- **The windowed output can be moved and resized**: when the output isn't fullscreen (one screen, or DISPLAY set to the
+  main screen), drag anywhere on it to move it, and drag its edges to resize it. It stays 16:9, as in Playback Joe, and
+  snaps back to 16:9 inside the screen when it leaves fullscreen. A move cursor shows over it while it's a window.
+
 ## [0.9.2] - 2026-11-13
 
 ### Added

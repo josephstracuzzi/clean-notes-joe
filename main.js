@@ -565,11 +565,39 @@ function getOutputLayout() {
     return { fullscreen: false, display, bounds: { x: workArea.x + workArea.width - width, y: workArea.y, width, height } };
 }
 
+// Windowed output is locked to 16:9 (resize drags keep the ratio), as in Playback Joe. Fullscreen is left
+// free so the output always fills its display. On leaving fullscreen the window is snapped to 16:9 inside its
+// current bounds and the display's work area, so a 16:10 or 4:3 screen can't leave it stretched.
+const OUTPUT_ASPECT = 16 / 9;
+
+function applyOutputAspect(win) {
+    if (!win || win.isDestroyed()) return;
+    if (win.isFullScreen()) {
+        win.setAspectRatio(0);
+        return;
+    }
+    win.setAspectRatio(OUTPUT_ASPECT);
+    const b = win.getContentBounds();
+    const workArea = screen.getDisplayMatching(b).workArea;
+    let width = Math.min(b.width, workArea.width);
+    let height = Math.round(width / OUTPUT_ASPECT);
+    if (height > workArea.height) {
+        height = workArea.height;
+        width = Math.round(height * OUTPUT_ASPECT);
+    }
+    if (width !== b.width || height !== b.height) {
+        const x = Math.min(Math.max(b.x, workArea.x), workArea.x + workArea.width - width);
+        const y = Math.min(Math.max(b.y, workArea.y), workArea.y + workArea.height - height);
+        win.setContentBounds({ x, y, width, height });
+    }
+}
+
 function moveOutputTo(win, layout) {
     const apply = () => {
         if (win.isDestroyed()) return;
         win.setBounds(layout.bounds);
         if (layout.fullscreen) win.setFullScreen(true);
+        else applyOutputAspect(win);
         broadcastState();
     };
     if (win.isFullScreen()) {
@@ -617,6 +645,9 @@ function createOutputWindow() {
         backgroundColor: settings.background,
         icon: APP_ICON,
         fullscreen: layout.fullscreen,
+        // Windowed, it can be dragged anywhere on it (output.html) and resized from its edges, staying 16:9
+        resizable: true,
+        movable: true,
         ...layout.bounds,
         webPreferences: {
             nodeIntegration: false,
@@ -630,8 +661,10 @@ function createOutputWindow() {
     win.loadFile(path.join(__dirname, 'output.html'));
 
     const report = () => broadcastState();
-    win.on('enter-full-screen', report);
-    win.on('leave-full-screen', () => setTimeout(report, 150));
+    applyOutputAspect(win);
+    win.on('enter-full-screen', () => { applyOutputAspect(win); report(); });
+    // Windows restores the pre-fullscreen bounds just after this event, so snap once that has settled
+    win.on('leave-full-screen', () => setTimeout(() => { applyOutputAspect(win); report(); }, 150));
     win.on('resized', report);
 
     win.webContents.on('did-finish-load', () => {
