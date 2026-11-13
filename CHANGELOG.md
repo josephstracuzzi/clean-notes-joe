@@ -9,6 +9,12 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.10.0] - 2026-11-13
+
+### Added
+- **CLOCK: 12H AM/PM or 24H** in the SCREEN panel. The header clock shows 2:30 PM or 14:30, whatever the PC's own clock
+  setting. **12H AM/PM is the default**, also for existing settings (the clock used to follow the PC's setting).
+
 ## [0.9.3] - 2026-11-13
 
 ### Fixed

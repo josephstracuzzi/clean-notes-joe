@@ -61,7 +61,7 @@ Slides hidden in PowerPoint or Impress are stepped over in FILE, as in the slide
 ### Built for the screen you're reading
 - **Text**: font, bold, uppercase, alignment, line spacing, paragraph gap and side margin.
 - **Colour**: presets (white, yellow, green, cyan on black, white on navy, black on white) or any colours.
-- **Screen**: the header bar (slide number, timer, clock, size and colour), centre vertically, and **mirror** for teleprompter glass.
+- **Screen**: the header bar (slide number, timer, and a 12-hour AM/PM or 24-hour clock, in its own size and colour), centre vertically, and **mirror** for teleprompter glass.
 - Sizes are in points at 1080p and scale with the output, so text looks the same on any screen.
 
 <img src="docs/feature-screen.png" width="453" alt="SCREEN panel: HEADER BAR items, HEADER SIZE, HEADER COLOUR presets, HEADER FONT, LAYOUT and KEYS">

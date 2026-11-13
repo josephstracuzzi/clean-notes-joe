@@ -63,6 +63,7 @@ const DEFAULT_SETTINGS = {
     headerSize: 5,         // header bar (slide number / timer / clock), % of screen height
     headerColor: 'auto',   // 'auto' follows the notes colour, or a #rrggbb
     headerFont: 'notes',   // 'notes' = the notes font (fixed-width digits), 'mono' = monospace
+    clockFormat: '12h',    // header clock: '12h' (2:30 PM) or '24h' (14:30)
     emptyText: '— NO NOTES —',
     globalKeys: true
 };
@@ -93,6 +94,7 @@ const SETTING_RULES = {
     headerSize: v => Number.isFinite(v) && v >= 3 && v <= 20,
     headerColor: v => v === 'auto' || /^#[0-9a-f]{6}$/i.test(v),
     headerFont: v => ['notes', 'mono'].includes(v),
+    clockFormat: v => ['24h', '12h'].includes(v),
     emptyText: v => typeof v === 'string' && v.length <= 200,
     globalKeys: v => typeof v === 'boolean'
 };

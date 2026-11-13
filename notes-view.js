@@ -237,7 +237,10 @@
             const s = this.settings, st = this.state;
             if (!s || !st) return;
             const timer = s.showTimer && st.slideStartedAt ? fmtTime(Date.now() - st.slideStartedAt) : '';
-            const clock = s.showClock ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            // 24-hour (14:30) or 12-hour with AM/PM (2:30 PM), whatever the PC's own clock setting
+            const clock = !s.showClock ? '' : s.clockFormat === '12h'
+                ? new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                : new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
             const changed = this.timerLabel.textContent !== timer || this.clockLabel.textContent !== clock;
             if (this.timerLabel.textContent !== timer) this.timerLabel.textContent = timer;
             if (this.clockLabel.textContent !== clock) this.clockLabel.textContent = clock;
