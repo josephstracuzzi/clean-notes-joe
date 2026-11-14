@@ -9,6 +9,19 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.11.0] - 2026-11-13
+
+### Changed
+- **FULLSCREEN fills the screen in place**: the output no longer uses Windows' own fullscreen. It's the same borderless
+  window sized exactly to its screen, so turning FULLSCREEN on or off simply pops it between filling the screen and
+  the small 16:9 window, with no in-between sizes and without disappearing. **DISPLAY** moves it straight to the
+  other screen (filling it, or as the small window), keeping its scroll position.
+- While it fills a screen the output **can't be moved or resized**. On a screen other than the console's it stays
+  above the taskbar.
+- **On the console's screen the output arrives as the small window in the top-right corner** (DISPLAY set to that
+  screen, at launch, or when the other screen goes away), **behind the console**, so it doesn't cover it. FULLSCREEN
+  can still fill that screen, and a resolution change no longer undoes FULLSCREEN.
+
 ## [0.10.1] - 2026-11-13
 
 ### Fixed
