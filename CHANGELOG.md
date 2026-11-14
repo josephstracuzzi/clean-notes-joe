@@ -9,6 +9,27 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.10.1] - 2026-11-13
+
+### Fixed
+- **Normal cursor over the output**: since 0.9.3 a cross-shaped cursor showed when the mouse was over the fullscreen
+  output. The output is now only draggable while it's a window, and it shows the normal cursor (it used to hide it).
+- Turning FULLSCREEN on or off updates the console and output straight away.
+- **No glitch on the output screen at launch**: the output briefly showed at the wrong size, then went blank, before
+  the notes appeared. It now waits until it has drawn the notes and finished going fullscreen, then appears in one
+  step at full size. **The console and the output appear together**, so both displays light up at the same moment.
+- **Changing DISPLAY** (or plugging a display in or out) no longer shows the output leaving fullscreen and moving
+  across: a fresh output opens on the new screen, out of sight until it has drawn the notes (at the same scroll
+  position), and the old one closes as it appears. A windowed output stays windowed on the new screen, in its corner.
+  Switching the output's screen off puts it in the top-right of the main screen (Windows used to drop it top-left).
+  When that screen comes back, the output returns as it was: fullscreen, or (if FULLSCREEN was turned off) a window in
+  the top-left corner.
+- **Turning FULLSCREEN off** makes the output an 854 x 480 window (16:9) in the top-left corner of the screen it was
+  fullscreen on (top-right on the main screen, clear of the console), instead of a window nearly the size of the screen. Switching either way is one clean step, with no
+  in-between sizes showing.
+- **Double-clicking the windowed output no longer maximizes it** (which filled the screen without FULLSCREEN lighting
+  up). Use FULLSCREEN to fill the screen.
+
 ## [0.10.0] - 2026-11-13
 
 ### Added
@@ -20,7 +41,7 @@ Versions follow `MAJOR.MINOR.PATCH`:
 ### Fixed
 - **The windowed output can be moved and resized**: when the output isn't fullscreen (one screen, or DISPLAY set to the
   main screen), drag anywhere on it to move it, and drag its edges to resize it. It stays 16:9, as in Playback Joe, and
-  snaps back to 16:9 inside the screen when it leaves fullscreen. A move cursor shows over it while it's a window.
+  snaps back to 16:9 inside the screen when it leaves fullscreen.
 
 ## [0.9.2] - 2026-11-13
 

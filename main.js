@@ -562,9 +562,23 @@ function getOutputLayout() {
         return { fullscreen: true, display, bounds: { ...display.bounds } };
     }
     const workArea = display.workArea;
-    const width = Math.min(854, workArea.width);
-    const height = Math.round(width * 9 / 16);
+    const { width, height } = windowedOutputSize(workArea);
     return { fullscreen: false, display, bounds: { x: workArea.x + workArea.width - width, y: workArea.y, width, height } };
+}
+
+// The windowed output's size: 854 x 480 (16:9), or smaller on a small screen
+function windowedOutputSize(workArea) {
+    const width = Math.min(854, workArea.width);
+    return { width, height: Math.round(width * 9 / 16) };
+}
+
+// Where the windowed output goes on a screen (FULLSCREEN off, or DISPLAY changed while windowed): top-left; on the
+// main screen (where the console is) top-right, clear of the console
+function windowedCorner(display) {
+    const workArea = display.workArea;
+    const size = windowedOutputSize(workArea);
+    const onMain = display.id === screen.getPrimaryDisplay().id;
+    return { x: onMain ? workArea.x + workArea.width - size.width : workArea.x, y: workArea.y, ...size };
 }
 
 // Windowed output is locked to 16:9 (resize drags keep the ratio), as in Playback Joe. Fullscreen is left
@@ -594,27 +608,29 @@ function applyOutputAspect(win) {
     }
 }
 
+// Moves the output to another display (DISPLAY, or a display plugged in or unplugged). Moving the window itself
+// would show each step (Windows makes it visible again whenever it leaves fullscreen), so a fresh output window
+// opens on the new screen instead: hidden until it has drawn the notes, carrying on at the same scroll position.
+// The old one stays until the new one has appeared, then closes. layout: where the new one goes (default: the
+// usual place for the displays connected now).
 function moveOutputTo(win, layout) {
-    const apply = () => {
-        if (win.isDestroyed()) return;
-        win.setBounds(layout.bounds);
-        if (layout.fullscreen) win.setFullScreen(true);
-        else applyOutputAspect(win);
-        broadcastState();
-    };
-    if (win.isFullScreen()) {
-        win.once('leave-full-screen', () => setTimeout(apply, 250));
-        win.setFullScreen(false);
-    } else {
-        apply();
-    }
+    const fraction = lastScrollFraction;
+    const next = createOutputWindow(layout);
+    next.webContents.once('did-finish-load', () => send(next, 'scroll-command', { type: 'to', value: fraction }));
+    next.once('show', () => setTimeout(() => { if (!win.isDestroyed()) win.close(); }, 300));
 }
 
+// DISPLAY changed: fullscreen on the new screen, or, if it's a window now, the small window in that screen's corner
 function placeOutput() {
-    if (outputWindow && !outputWindow.isDestroyed()) moveOutputTo(outputWindow, getOutputLayout());
+    const win = outputWindow;
+    if (!win || win.isDestroyed()) return;
+    const usual = getOutputLayout();
+    moveOutputTo(win, win.isFullScreen() ? usual : { fullscreen: false, display: usual.display, bounds: windowedCorner(usual.display) });
 }
 
 let displayChangeTimer = null;
+let displayCount = 0;
+let outputWantsWindow = false; // the operator turned FULLSCREEN off (not just a screen going away)
 function watchDisplays() {
     const onChange = () => {
         if (displayChangeTimer) clearTimeout(displayChangeTimer);
@@ -622,24 +638,33 @@ function watchDisplays() {
             displayChangeTimer = null;
             const win = outputWindow;
             if (win && !win.isDestroyed()) {
-                const layout = getOutputLayout();
+                let layout = getOutputLayout();
+                // FULLSCREEN turned off by the operator: it stays a window (in the screen's corner) when a display
+                // comes back, rather than going fullscreen there
+                if (outputWantsWindow && layout.fullscreen) layout = { fullscreen: false, display: layout.display, bounds: windowedCorner(layout.display) };
                 const current = screen.getDisplayMatching(win.getBounds());
-                if (!(current.id === layout.display.id && win.isFullScreen() === layout.fullscreen)) {
-                    notifyOperator(layout.fullscreen ? 'DISPLAY CONNECTED. OUTPUT MOVED TO IT IN FULLSCREEN.' : 'OUTPUT DISPLAY DISCONNECTED. OUTPUT MOVED TO A WINDOW ON THIS SCREEN.');
+                // A screen switched off: Windows moves the output onto a remaining screen by itself (top-left), so
+                // a windowed output is put in its usual corner even though it's already on the right screen
+                const count = screen.getAllDisplays().length;
+                const lostScreen = count < displayCount;
+                displayCount = count;
+                if (!(current.id === layout.display.id && win.isFullScreen() === layout.fullscreen) || (lostScreen && !layout.fullscreen)) {
+                    notifyOperator(lostScreen ? 'OUTPUT DISPLAY DISCONNECTED. OUTPUT MOVED TO A WINDOW ON THIS SCREEN.'
+                        : `DISPLAY CONNECTED. OUTPUT MOVED TO IT ${layout.fullscreen ? 'IN FULLSCREEN' : 'AS A WINDOW'}.`);
                     moveOutputTo(win, layout);
                 }
             }
             broadcastState();
         }, 1000);
     };
+    displayCount = screen.getAllDisplays().length;
     screen.on('display-added', onChange);
     screen.on('display-removed', onChange);
     screen.on('display-metrics-changed', onChange);
 }
 
 let outputRestarts = [];
-function createOutputWindow() {
-    const layout = getOutputLayout();
+function createOutputWindow(layout = getOutputLayout()) {
     const win = new BrowserWindow({
         title: 'CLEAN NOTES JOE ' + app.getVersion() + ' - OUTPUT',
         frame: false,
@@ -650,6 +675,9 @@ function createOutputWindow() {
         // Windowed, it can be dragged anywhere on it (output.html) and resized from its edges, staying 16:9
         resizable: true,
         movable: true,
+        maximizable: false,
+        // Shown once the page has its settings and state and has drawn them, so nothing half-drawn flashes at launch
+        show: false,
         ...layout.bounds,
         webPreferences: {
             nodeIntegration: false,
@@ -663,16 +691,31 @@ function createOutputWindow() {
     win.loadFile(path.join(__dirname, 'output.html'));
 
     const report = () => broadcastState();
-    applyOutputAspect(win);
+    // Created fullscreen, Windows hasn't finished going fullscreen yet: snapping to 16:9 now would shrink it for a
+    // moment, so that waits for enter-full-screen
+    if (!layout.fullscreen) applyOutputAspect(win);
     win.on('enter-full-screen', () => { applyOutputAspect(win); report(); });
     // Windows restores the pre-fullscreen bounds just after this event, so snap once that has settled
     win.on('leave-full-screen', () => setTimeout(() => { applyOutputAspect(win); report(); }, 150));
     win.on('resized', report);
+    // Never maximized (a double-click on the drag area would otherwise do it); FULLSCREEN fills the screen.
+    // In case Windows maximizes it anyway, put it straight back.
+    win.on('maximize', () => win.unmaximize());
 
+    // Shown without taking the focus from the console, a moment after the page has drawn its first notes.
+    // It appears see-through first, so Windows can finish making it fullscreen out of sight, then shows.
+    const showOutput = () => {
+        if (win.isDestroyed() || win.isVisible()) return;
+        win.setOpacity(0);
+        win.showInactive();
+        windowReady('output', win);
+    };
     win.webContents.on('did-finish-load', () => {
         send(win, 'settings', settings);
         broadcastState();
+        setTimeout(showOutput, 250);
     });
+    setTimeout(showOutput, 3000); // in case the page never reports in
 
     // If the output page crashes it is replaced (at most 3 times a minute)
     win.webContents.on('render-process-gone', (event, details) => {
@@ -696,6 +739,7 @@ function createOutputWindow() {
         broadcastState();
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.focus();
     });
+    return win;
 }
 
 function toggleOutput() {
@@ -797,7 +841,10 @@ function registerGlobalKeys() {
 // ---------------------------------------------------------------------------
 function createWindow() {
     const primary = screen.getPrimaryDisplay();
-    if (savedFile.outputOpen !== false) createOutputWindow();
+    // Both windows appear together at launch, once each has drawn itself (see windowReady)
+    launchReveal = { pending: new Set(['main']), windows: [] };
+    if (savedFile.outputOpen !== false) { launchReveal.pending.add('output'); createOutputWindow(); }
+    setTimeout(() => revealWindows(), 4000); // in case one never reports in
     watchDisplays();
 
     // Created hidden at its final size and shown once the first frame is painted: showing it at the default
@@ -825,7 +872,7 @@ function createWindow() {
     mainWindow.once('ready-to-show', () => {
         mainWindow.setOpacity(0);
         mainWindow.show();
-        setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setOpacity(1); }, 120);
+        windowReady('main', mainWindow);
     });
     applyUiScale(uiScaleLevel);
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -974,10 +1021,59 @@ ipcMain.on('toggle-output', (event) => {
 });
 
 ipcMain.on('toggle-fullscreen', (event) => {
-    if (!fromOperator(event) || !outputWindow || outputWindow.isDestroyed()) return;
-    outputWindow.setFullScreen(!outputWindow.isFullScreen());
-    mainWindow.focus();
+    if (fromOperator(event)) setOutputFullscreen(null);
 });
+
+// A window has been shown see-through and has drawn itself. At launch the console and the output wait for each
+// other and appear together, so both displays light up at once; later (the output reopened) a window appears by itself.
+// Windows shows a see-through window as see-through, so making it fullscreen or sizing it doesn't flash.
+let launchReveal = null;
+function windowReady(name, win) {
+    if (!launchReveal) {
+        setTimeout(() => { if (!win.isDestroyed()) win.setOpacity(1); }, 250);
+        return;
+    }
+    launchReveal.windows.push(win);
+    launchReveal.pending.delete(name);
+    if (!launchReveal.pending.size) revealWindows();
+}
+
+function revealWindows() {
+    if (!launchReveal) return;
+    const ready = launchReveal.windows;
+    launchReveal = null;
+    setTimeout(() => ready.forEach(w => { if (!w.isDestroyed()) w.setOpacity(1); }), 250);
+}
+
+// Output fullscreen on (true), off (false) or the other way round (null), from FULLSCREEN. Turned off, it becomes
+// the 854 x 480 window in the top-left corner of the screen it was fullscreen on (top-right on the main screen).
+function setOutputFullscreen(on) {
+    const win = outputWindow;
+    if (!win || win.isDestroyed()) return;
+    const goFull = on === null ? !win.isFullScreen() : on;
+    outputWantsWindow = !goFull;
+    if (goFull === win.isFullScreen()) return;
+    const leaving = !goFull;
+    // Leaving, Windows puts back the size it had before fullscreen (nearly the whole screen) for a moment: it's
+    // moved to its small corner window straight away, again when Windows reports the change, and once settled.
+    // See-through while it switches, so the steps don't show. It reappears in its final place.
+    const corner = windowedCorner(screen.getDisplayMatching(win.getBounds()));
+    const place = () => { if (!win.isDestroyed() && !win.isFullScreen()) win.setContentBounds(corner); };
+    win.setOpacity(0);
+    if (leaving) win.once('leave-full-screen', place);
+    win.setFullScreen(goFull);
+    if (leaving) { win.setOpacity(0); place(); }
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.focus();
+    // Once the switch has settled (the window's own events can come late or not at all): place it, tell the
+    // console and output, then show it
+    setTimeout(() => {
+        if (win.isDestroyed()) return;
+        if (leaving) place();
+        applyOutputAspect(win);
+        broadcastState();
+        setTimeout(() => { if (!win.isDestroyed()) win.setOpacity(1); }, 100);
+    }, 300);
+}
 
 ipcMain.on('set-output-display', (event, id) => {
     if (!fromOperator(event)) return;
@@ -988,8 +1084,11 @@ ipcMain.on('set-output-display', (event, id) => {
 });
 
 // The output reports its scroll position so the console's preview and scroll bar can follow it
+// How far the output has scrolled (0 to 1), so a fresh output window (another display) carries on from there
+let lastScrollFraction = 0;
 ipcMain.on('scroll-status', (event, status) => {
     if (!fromOutput(event) || !status) return;
+    lastScrollFraction = Number(status.max) > 0 ? Math.min(1, Math.max(0, Number(status.offset) / Number(status.max))) : 0;
     send(mainWindow, 'scroll-status', {
         offset: Number(status.offset) || 0,
         max: Number(status.max) || 0,

@@ -5,11 +5,11 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
     <title>CLEAN NOTES JOE - OUTPUT</title>
     <style>
-        /* Drag anywhere to move the borderless window when it isn't fullscreen (as in Playback Joe) */
-        html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none; user-select: none; -webkit-app-region: drag; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #000; user-select: none; }
         #host { position: absolute; inset: 0; }
-        /* Windowed: a move cursor shows it can be dragged; fullscreen: no cursor over the notes */
-        body.is-windowed { cursor: move; }
+        /* Windowed: drag anywhere to move the borderless window (as in Playback Joe). Only then, so the fullscreen
+           output shows the normal cursor (Windows draws its own over a drag area). */
+        body.is-windowed { -webkit-app-region: drag; }
     </style>
 </head>
 <body>
