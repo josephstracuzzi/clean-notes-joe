@@ -9,6 +9,14 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.11.2] - 2026-11-14
+
+### Changed
+- **New test deck**: the bundled test deck tells a short history of Canada (Confederation, the railway, the Klondike
+  and more) instead of repeating the same phrases, with the same 10 test cases: very short notes, a few lines, no notes,
+  one paragraph, long notes that scroll, a full script, line breaks, a hidden slide, special characters (French accents,
+  Inuktitut syllabics) and all caps. It's rebuilt with `node tools/make-test-deck.js`, which needs no Python.
+
 ## [0.11.1] - 2026-11-14
 
 ### Changed

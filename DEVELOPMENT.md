@@ -14,7 +14,7 @@ npm run build:mac         # both Mac apps in dist/ (on a Mac)
 ```
 
 ## Test deck
-`test_decks/Clean Notes Joe Test Deck.pptx` is where the LOAD dialog starts until you've opened a deck. Its 10 slides cover very short notes, several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and blank lines, a hidden slide, special characters and other scripts, and all-caps notes. Each slide says on it what it tests. Rebuild it with `python tools/make-test-deck.py` (needs python-pptx).
+`test_decks/Clean Notes Joe Test Deck.pptx` is where the LOAD dialog starts until you've opened a deck. Its 10 slides tell a short history of Canada, and their notes cover very short notes, several short lines, no notes, one paragraph, notes long enough to scroll, a full script, soft line breaks and blank lines, a hidden slide, special characters and other scripts (French accents, Inuktitut syllabics), and all-caps notes. Each slide says on it what it tests. The notes are in `tools/make-test-deck.js`; rebuild the deck with `node tools/make-test-deck.js` (no dependencies: it reuses the deck's own theme and layouts and rewrites every title, slide text and set of notes).
 
 ## Branches and versions
 The project works the same way as [Playback Joe](https://github.com/josephstracuzzi/playback-joe).
