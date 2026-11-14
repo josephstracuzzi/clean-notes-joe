@@ -9,6 +9,12 @@ Versions follow `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features or settings
 - **MAJOR** for changes that break saved settings or how the app is operated
 
+## [0.11.1] - 2026-11-14
+
+### Changed
+- **↑ / ↓ and Page Up / Down glide** through long notes instead of jumping: the notes ease gently to the new position in
+  about half a second (pressing again keeps going), then auto-scroll carries on from there.
+
 ## [0.11.0] - 2026-11-13
 
 ### Changed

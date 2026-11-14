@@ -124,6 +124,7 @@
             this.lastKey = key;
             if (newSlide) {
                 this.offset = 0;
+                this.glide = null;
                 this.shownAt = performance.now();
                 this.content.classList.remove('nj-enter');
                 void this.content.offsetWidth; // restart the fade-in
@@ -274,20 +275,41 @@
             this.progress.style.width = (overflow ? (this.offset / this.max) * 100 : 0) + '%';
         }
 
+        // Jumps straight there (dragging the scroll bar, TOP, a new slide); stops any glide
         setOffset(px) {
+            this.glide = null;
+            this.moveTo(px);
+        }
+
+        moveTo(px) {
             this.offset = Math.min(Math.max(0, px), this.max);
             this.applyOffset();
         }
 
-        scrollBy(px) { this.setOffset(this.offset + px * this.unit()); }
-        pageBy(dir) { this.setOffset(this.offset + dir * this.viewport.clientHeight * 0.8); }
+        // The arrow keys and Page Up/Down glide to the new position (see tick) instead of jumping; pressing again
+        // while it glides adds to where it's heading
+        glideBy(px) {
+            const from = this.glide !== null && this.glide !== undefined ? this.glide : this.offset;
+            this.glide = Math.min(Math.max(0, from + px), this.max);
+        }
+
+        scrollBy(px) { this.glideBy(px * this.unit()); }
+        pageBy(dir) { this.glideBy(dir * this.viewport.clientHeight * 0.8); }
         scrollToFraction(f) { this.setOffset(f * this.max); }
         restart() { this.shownAt = performance.now(); this.setOffset(0); }
 
-        // Auto-scroll step (only the window in charge of scrolling calls this). Paced to reading speed: the
-        // time to read every word at scrollWpm, less the start delay, is spread evenly over the scroll, so the
-        // end comes into view as the last word is reached and the text never runs ahead of the reader.
+        // Scroll step (only the window in charge of scrolling calls this). A key glide eases gently towards its
+        // target (most of the way in about half a second); then auto-scroll carries on from there. Auto-scroll is
+        // paced to reading speed: the time to read every word at scrollWpm, less the start delay, is spread evenly
+        // over the scroll, so the end comes into view as the last word is reached and the text never runs ahead.
         tick(dt) {
+            if (this.glide !== null && this.glide !== undefined) {
+                const target = Math.min(this.glide, this.max);
+                const diff = target - this.offset;
+                if (Math.abs(diff) < 0.5) { this.moveTo(target); this.glide = null; }
+                else this.moveTo(this.offset + diff * Math.min(1, dt * 5));
+                return true;
+            }
             const s = this.settings, st = this.state;
             if (!s || !st || !s.autoScroll || st.paused || this.max <= 0) return false;
             if (this.offset >= this.max) return false;
